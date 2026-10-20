@@ -327,3 +327,10 @@ make test
 
 `CLAUDE.md` has the detailed notes: quirks, decisions, and the reasons behind
 them.
+
+## License
+
+[MIT](LICENSE): use it, change it, share it; keep the copyright notice. The
+license covers Movie Loft's code and writing. The movie and TV artwork in the
+screenshots under `docs/images/` belongs to its respective studios and isn't
+covered by it.
