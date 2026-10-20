@@ -28,8 +28,6 @@ echo "→ Reading TV episodes from the Apple TV app…"
 if ! osascript export-tv.applescript "$PWD"; then
     echo "⚠ Couldn't read TV episodes — keeping the previous episodes.tsv." >&2
 fi
-# Apple TV IDs for anything new, so the guide can tune to it (best-effort).
-python3 fetch_apple_ids.py 2>/dev/null | head -1 || echo "⚠ Couldn't look up Apple TV IDs — keeping what's there." >&2
 # Streamed shows (Apple TV+) from TMDB — new episodes appear on their own.
 python3 fetch_streaming.py 2>/dev/null | tail -2 || echo "⚠ Couldn't refresh streamed shows — keeping what's there." >&2
 # Posters for any show not looked up yet (best-effort: no TMDB key or no
@@ -40,6 +38,11 @@ echo
 echo "→ Rebuilding the pages…"
 report="$(python3 build.py)"
 echo "$report"
+# Apple TV IDs for anything new, so the guide can tune to it (best-effort).
+# After build.py and fetch_tv_art.py, because it looks titles up by their
+# TMDB IDs, which those two fill in for new purchases. (Running it first left
+# every new title without a Tune in link until the next make.)
+python3 fetch_apple_ids.py 2>/dev/null | head -1 || echo "⚠ Couldn't look up Apple TV IDs — keeping what's there." >&2
 tvreport=""
 if [ -f episodes.tsv ]; then
     tvreport="$(python3 build_tv.py)"
