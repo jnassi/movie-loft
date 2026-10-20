@@ -90,8 +90,14 @@ remote and merge from it now and then:
 
 ```sh
 git remote add upstream https://github.com/jnassi/movie-loft.git
-git pull upstream main
+git fetch upstream && git merge upstream/main
 ```
+
+Use `merge`, not `git pull`: if your git is set to rebase on pull, a pull
+tries to replay your whole history on top of this repo and stops on
+conflicts. (If that happens, `git rebase --abort` puts everything back.) The
+very first merge into a copy made from the template needs
+`--allow-unrelated-histories`, since the template starts a fresh history.
 
 Your library files never conflict with those updates, because this repo
 doesn't contain any.
