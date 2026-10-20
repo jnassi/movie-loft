@@ -55,6 +55,12 @@ There's a longer product description in [`docs/about.md`](docs/about.md).
   no server involved.
 - **Nothing at home is exposed.** The Tune in helper on the Mac only makes
   outbound requests to the web server; it never listens for connections.
+- **No VPN option.** Tune in always goes through the hosted server. Movie Loft
+  doesn't support the other common setup, where your phone joins your home
+  network over a VPN (Tailscale, WireGuard, and the like) and talks to the Mac
+  directly. That's deliberate: my phone is managed by my employer, so a VPN
+  back home isn't an option for me, and I can't build or test it. If you'd
+  like to add it, contributions are welcome.
 
 ## Requirements
 
