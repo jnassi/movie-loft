@@ -1,6 +1,7 @@
-# After buying a movie, just run `make`. It pulls new purchases from the Apple TV
-# app, rebuilds the page, commits + pushes the purchase record, and opens the
-# page. The other targets are for development.
+# After buying something, just run `make`. It pulls new purchases from the
+# Apple TV app, looks up what's new, rebuilds all three pages, commits, pushes
+# if there's a remote (which deploys), and opens the page. `make help` lists
+# the other targets.
 .PHONY: help update export export-tv tv-art apple-ids episode-ids helper-install helper-restart helper-log build build-tv build-guide check check-tv test years open clean
 
 update:                  ## the only command you need — export, rebuild, commit, push, open

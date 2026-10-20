@@ -1,9 +1,9 @@
-"""Movie Loft web server (Railway).
+"""Movie Loft web server (Railway or any Docker host).
 
-Serves the pages `make` builds (index.html, tv.html, art/, art-tv/) behind a
-Google sign-in limited to ALLOWED_EMAILS, plus a small JSON API for the one
-thing the static pages can't do on their own: remember tags (Comfort, for now)
-in Postgres.
+Serves the pages `make` builds (index.html, tv.html, guide.html, art/, art-tv/,
+icons/) behind a Google sign-in limited to ALLOWED_EMAILS, plus a small JSON
+API for what the static pages can't do on their own: remember tags (Comfort,
+for now) and run the Tune in queue, both in Postgres.
 
 The catalog itself is NOT in the database. It stays as files in git, rebuilt
 from the Apple TV app export by `make`; a push redeploys. The database holds
@@ -13,7 +13,7 @@ Environment:
   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET   OAuth client (Google Cloud console)
   ALLOWED_EMAILS                            comma-separated; anyone else is refused
   SESSION_SECRET                            signs the session cookie
-  DATABASE_URL                              Postgres (Railway provides it)
+  DATABASE_URL                              Postgres (Railway and most hosts provide it)
   PUBLIC_URL                                e.g. https://movieloft.example.com
   AGENT_TOKEN                               shared secret for the Tune in helper on the Mac
   DEV_NO_AUTH=1                             local only: skip sign-in. Refused when deployed.
@@ -88,7 +88,7 @@ async def require_login(request: Request, call_next):
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, session_cookie="movieloft",
                    max_age=60 * 60 * 24 * 90, same_site="lax", https_only=DEPLOYED)
 # Outermost: compress what goes out. The guide carries every episode's Apple TV
-# ID (~500 KB raw, ~250 KB gzipped), and Railway's edge doesn't compress.
+# ID (~500 KB raw, ~250 KB gzipped), and not every host's edge compresses.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
@@ -302,7 +302,7 @@ async def agent_result(res: TuneResult, request: Request):
 
 # --------------------------------------------------------------- the pages
 # Only the built site is served — never source files, the .git folder, or the
-# TSVs. (This is the job .assetsignore did on Cloudflare.)
+# TSVs.
 PAGES = {"/": "index.html", "/index.html": "index.html", "/tv.html": "tv.html",
          "/guide.html": "guide.html"}
 ART_DIRS = {"art", "art-tv", "icons"}

@@ -42,9 +42,9 @@ target is still `tell application "TV"`.
 - **Keep `raw` titles unstripped.** One has a trailing space; `raw` is the art
   filename and the tag key. Strip only for lookups.
 - **The catalog is files in git, and a push to `main` is the deploy.** `make`
-  commits the data it regenerates (only files that exist) and pushes if
-  there's a remote; it leaves hand edits to `corrections.toml` for the user
-  to commit.
+  commits what it regenerates plus `corrections.toml` and `movieloft.toml`
+  (only files that exist; a change to either one is enough to trigger a
+  commit) and pushes if there's a remote.
 - **TMDB attribution in the page footers is required by TMDB's terms.** Don't
   remove it.
 - **`template.html` holds the shared CSS** (`__BASE_CSS__` is filled from it
@@ -65,8 +65,9 @@ target is still `tell application "TV"`.
 Follow README.md's four levels in order; each one works before the next
 starts. Things that trip people up:
 
-- **The Apple TV app must be open** for the export. `update.sh` checks and
-  stops before touching anything if it isn't. The first export triggers
+- **The export drives the Apple TV app** (`tell application "TV"`), which
+  must be signed in to the library's account. If the export fails, `update.sh`
+  stops before touching anything. The first export triggers
   macOS's Automation prompt (Terminal → "TV"); if it was denied, it's in
   System Settings → Privacy & Security → Automation.
 - **The Docker build needs the built pages, `art/`, `art-tv/`, and
@@ -263,8 +264,12 @@ and `catalog-shows.json` (gitignored intermediates) and embeds it in the page.
   Half Hour / The Hour; the Apple TV app's genre field isn't used),
   `marathon`, `mixed` (films + episodes, defined under `[channel."Name"]` in
   corrections.toml with `movie_share`), `comfort-movies`, `comfort-shows`,
-  `loop`. Adding a channel is one `add(...)`; the build warns about
-  series/show names that match nothing.
+  `loop`. Adding a channel is one `add(...)`; any `[channel."Name"]` in
+  corrections.toml becomes a mixed channel (Super Heroes and Starfleet keep
+  their slots; others follow in file order, with an optional `blurb`). The
+  build warns about series/show names that match nothing.
+- **Hard-coded taste:** shows starting "Star Trek" stay off The Hour (they'd
+  swamp it, and Starfleet covers them), in `build_guide.py`.
 - Shared episode lists are embedded once in `REFS`, not per channel.
 - **Channel copies are configurable:** `[guide] copies` (default 1) runs
   "Movie Roulette 2", "Marathon 3", etc. for the five busy formats;

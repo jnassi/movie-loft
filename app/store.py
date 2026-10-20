@@ -3,7 +3,7 @@
 
 One table, created on startup if missing. Small enough that a migrations tool
 would be more machinery than schema; if this grows past a couple of tables,
-switch to Alembic like the book club app.
+switch to a migrations tool such as Alembic.
 """
 import os
 

@@ -26,7 +26,7 @@ INPUTS = ("movies.tsv", "corrections.toml", "library-state.json", "theatrical.js
 
 def build(args):
     """Run build.py against a fresh copy of the fixture; return (index, stdout)."""
-    work = Path(tempfile.mkdtemp(prefix="movielib-test-"))
+    work = Path(tempfile.mkdtemp(prefix="movieloft-test-"))
     try:
         for name in INPUTS:
             shutil.copy(FIXTURE / name, work / name)
@@ -45,10 +45,10 @@ def build(args):
 
 def build_tv_check():
     """build_tv.py --check against the fixture episodes; returns stdout. The
-    fixture is a catalog of the TV app's metadata quirks (season-0 titles,
+    fixture is a catalog of the Apple TV app's metadata quirks (season-0 titles,
     interleaved clips, duplicate purchases, a split two-parter, "The Final
     Season"), so this golden pins the cleanup rules."""
-    work = Path(tempfile.mkdtemp(prefix="movielib-tvtest-"))
+    work = Path(tempfile.mkdtemp(prefix="movieloft-tvtest-"))
     try:
         shutil.copy(FIXTURE / "episodes.tsv", work / "episodes.tsv")
         out = subprocess.run(

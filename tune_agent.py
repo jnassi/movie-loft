@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The Tune in helper. Runs on an always-on Mac on the same network as the Apple TVs.
 
-Waits on Movie Loft (Railway) for Tune in requests from the guide, drives the
+Waits on the Movie Loft server for Tune in requests from the guide, drives the
 chosen Apple TV with tunein.py, and reports back. It only ever makes outbound
 requests — nothing on the home network is exposed (decided Oct 2026; Tailscale
 would need a VPN on every phone, which isn't always possible).
@@ -10,7 +10,7 @@ would need a VPN on every phone, which isn't always possible).
 
 Config:
   ~/.movieloft-agent-token   the shared secret (chmod 600; same value as
-                             AGENT_TOKEN on Railway)
+                             AGENT_TOKEN on the server)
   movieloft.toml             rooms (key → Apple TV name) and the server's url
   MOVIELOFT_URL              overrides the url
 Started at login by a LaunchAgent (`make helper-install`, from
@@ -86,7 +86,7 @@ async def main():
                     if r.status == 204:
                         continue                 # nothing in ~25s; ask again
                     if r.status == 401:
-                        log("Railway rejected the token — check ~/.movieloft-agent-token")
+                        log("The server rejected the token — check ~/.movieloft-agent-token against its AGENT_TOKEN")
                         await asyncio.sleep(60)
                         continue
                     r.raise_for_status()

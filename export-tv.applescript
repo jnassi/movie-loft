@@ -1,4 +1,4 @@
--- Pulls every TV episode out of the TV app: a TSV with one row per episode
+-- Pulls every TV episode out of the Apple TV app: a TSV with one row per episode
 -- (show, season, episode, title, seconds, year), plus one cover image per show
 -- taken from its earliest episode. Art that's already been saved is skipped,
 -- so re-runs are quick.

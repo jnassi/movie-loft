@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Turn a TV.app export into index.html.
+"""Turn the Apple TV app's movie export into index.html.
 
     python3 build.py            # normal run
     python3 build.py --check    # report the diff, write nothing
 
 Reads   movies.tsv, corrections.toml, theatrical.json, library-state.json
-Writes  index.html, library-state.json, and theatrical.json when it fills gaps
+Writes  index.html, library-state.json, catalog-movies.json (for build_guide.py),
+        and theatrical.json when it fills gaps
 
 Mostly offline. When a film is missing from theatrical.json and a TMDB key is
 present, the build looks up just that film and caches it — so a new purchase
@@ -167,7 +168,7 @@ for line in src_lines:
     #  the same reissue date as the store year, so TMDB is the theatrical source.)
     secs = int(parts[4]) if len(parts) > 4 and parts[4].strip().isdigit() else None
     title, edition = split_title(raw)
-    store = int(year) if year.strip().isdigit() else None   # the TV app's stamp (reissue-ish)
+    store = int(year) if year.strip().isdigit() else None   # the Apple TV app's stamp (reissue-ish)
     tmdb = THEATRICAL.get(raw)                               # original US theatrical, if known
     paren = re.search(r"\((\d{4})\)", raw)                   # "Ghostbusters (2016)": the library's
     paren_year = int(paren.group(1)) if paren else None      # own way of telling remakes apart
@@ -197,7 +198,7 @@ for line in src_lines:
 # Two different raw strings never merge, so a film can't silently vanish because
 # TMDB happened to map it onto another film's (title, edition, year). (Good Will
 # Hunting is the one real dup: bought twice, identical raw, collapses to one.)
-# Which of the duplicates survives is deterministic, not export order (the TV app
+# Which of the duplicates survives is deterministic, not export order (the Apple TV app
 # orders by director, unstable across renames): earliest year wins, then the more
 # populated row, then director name — so a re-export can't quietly change what's
 # shown.

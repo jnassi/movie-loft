@@ -137,7 +137,7 @@ Security → Automation.
 
 ```sh
 make export export-tv     # read the library: movies.tsv, episodes.tsv, art/, art-tv/
-make years tv-art         # theatrical years and show posters from TMDB (needs the key)
+make years tv-art         # theatrical years and show posters from TMDB (skip without a key)
 make build build-tv       # index.html (movies) and tv.html (TV shows)
 open index.html
 ```
@@ -297,7 +297,7 @@ use `sudo fdesetup authrestart`, which comes back up logged in.
 | **Missing Apple TV link** | `[apple_tv]` in `corrections.toml`: paste the tv.apple.com link. A web search limited to tv.apple.com finds it; the Apple TV app has no Copy Link |
 | **Streamed shows you don't own** | `[streaming] shows` in `corrections.toml` |
 | **Which shows air** | `[guide] min_episodes` and `keep_shows` in `corrections.toml` |
-| **Channels** | `build_guide.py`: one `add(...)` per channel; mixed film-and-show channels go under `[channel."Name"]` in `corrections.toml` |
+| **Channels** | Mixed film-and-show channels: add a `[channel."Name"]` to `corrections.toml` (any name; see the examples). Other channel types: one `add(...)` per channel in `build_guide.py`, which also keeps Star Trek off The Hour |
 | **Rooms, server address, a loop channel** | `movieloft.toml` (copy `movieloft.example.toml`): `url`, one `[[rooms]]` per Apple TV, and an optional `[loop]` channel that plays one movie all day |
 | **How many channels** | `[guide] copies` in `corrections.toml` (extra copies of Movie Roulette, Marathon, The Half Hour, The Hour, Channel Surf), or per format under `[guide.channel_copies]`; 0 turns one off |
 

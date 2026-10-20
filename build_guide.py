@@ -169,6 +169,13 @@ for n in copies("The Hour"):
 for n in copies("Channel Surf"):
     add("Channel Surf" + n, "episodes", "Any episode of anything.", pool=sorted(airs))
 
+# Any other mixed channels defined in corrections.toml ([channel."Name"]),
+# in file order. Added after the built-ins so their numbers don't shift.
+BUILTIN_MIXED = {"Super Heroes", "Starfleet"}
+for name, spec in MIXED.items():
+    if name not in BUILTIN_MIXED:
+        mixed(name, spec.get("blurb", "Films and episodes, mixed."))
+
 # The loop channel ([loop] in movieloft.toml). Added last so existing channel
 # numbers don't shift.
 LOOP = CONFIG["loop"]

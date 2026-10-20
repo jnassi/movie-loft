@@ -4,13 +4,15 @@
 # away. It:
 #   1. pulls your library out of the Apple TV app  (movies.tsv, episodes.tsv + any
 #      new cover art)
-#   2. rebuilds index.html and tv.html
+#   2. looks up posters, years, and Apple TV links for anything new, and
+#      rebuilds index.html, tv.html, and guide.html
 #   3. if anything changed, commits the inputs + the built pages + new art and
 #      pushes — which deploys, if your host builds from the repo (Railway does)
 #   4. opens the local page so you can see it
 #
-# Nothing to remember, no flags. If the Apple TV app isn't open it says so and stops
-# before touching anything.
+# Nothing to remember, no flags. If the export fails (the Apple TV app isn't
+# signed in, or macOS hasn't allowed Terminal to control it), it says so and
+# stops before touching anything.
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -62,11 +64,11 @@ fi
 echo
 
 # Did anything that changes the site actually change? Check the inputs — a new
-# purchase (movies.tsv + art), a hand edit (corrections.toml), or a years
+# purchase (movies.tsv + art), a hand edit (corrections.toml, movieloft.toml), or a years
 # refresh (theatrical.json). index.html itself can't be the signal: it carries
 # a per-build timestamp, so it churns every run. On a true no-op, drop that
 # churn (index.html + library-state.json) and stop without committing.
-if [ -z "$(git status --porcelain -- movies.tsv corrections.toml theatrical.json art episodes.tsv art-tv tv-art.json apple-ids.json streaming.json episode-ids.json)" ]; then
+if [ -z "$(git status --porcelain -- movies.tsv corrections.toml movieloft.toml theatrical.json art episodes.tsv art-tv tv-art.json apple-ids.json streaming.json episode-ids.json)" ]; then
     git checkout -- library-state.json index.html tv.html guide.html 2>/dev/null || true
     echo "✓ Nothing new since last time. Done."
     exit 0
@@ -84,7 +86,7 @@ if [ "$posters" -lt "$(( movies / 2 ))" ]; then
     exit 1
 fi
 if [ -f episodes.tsv ]; then
-    shows=$(cut -f1 episodes.tsv | sort -u | grep -c .)
+    shows=$(cut -f1 episodes.tsv | sort -u | grep -c . || true)
     covers=$(ls art-tv 2>/dev/null | wc -l | tr -d ' ')
     if [ "$covers" -lt "$(( shows / 2 ))" ]; then
         echo "✗ art-tv/ has $covers covers for $shows shows — too thin, not deploying." >&2
@@ -96,7 +98,7 @@ echo "→ Saving…"
 # Only what exists: corrections.toml, the TV files and the ID caches are all
 # optional on a new instance.
 files=()
-for f in movies.tsv corrections.toml theatrical.json library-state.json index.html art \
+for f in movies.tsv corrections.toml movieloft.toml theatrical.json library-state.json index.html art \
          episodes.tsv tv.html guide.html art-tv tv-art.json apple-ids.json streaming.json episode-ids.json; do
     [ -e "$f" ] && files+=("$f")
 done

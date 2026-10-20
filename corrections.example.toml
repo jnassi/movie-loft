@@ -69,13 +69,14 @@ copies = 1
 # "Marathon" = 3
 # "Channel Surf" = 0
 
-# Channels that mix films and episodes. A channel only appears if it's
-# defined here.
+# Channels that mix films and episodes. Each [channel."Name"] here becomes a
+# channel (Super Heroes and Starfleet are just examples; name yours anything).
 #   series       movie series (names from [series] above)
 #   match        regexes on cleaned movie titles, for films outside a series
 #   never        exact movie titles to keep out
 #   shows        exact show names; show_match = regexes on show names
 #   movie_share  how often a pick is a film rather than an episode (0–1)
+#   blurb        a one-line description (optional)
 [channel."Super Heroes"]
 match = ["^Ant-Man", "^The Batman$", "^Black Panther", "^Captain America",
          "^Doctor Strange", "^Guardians of the Galaxy", "^Iron Man", "^Spider-Man",

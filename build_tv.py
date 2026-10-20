@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn the TV.app episode export into tv.html.
+"""Turn the Apple TV app's episode export into tv.html.
 
     python3 build_tv.py            # normal run
     python3 build_tv.py --check    # report only, write nothing
@@ -8,9 +8,9 @@
 Reads   episodes.tsv (from export-tv.applescript), streaming.json (optional;
         fetch_streaming.py — Apple TV+ shows), template-tv.html, and the
         <style> block of template.html (shared look)
-Writes  tv.html
+Writes  tv.html, catalog-shows.json (for build_guide.py and fetch_episode_ids.py)
 
-The TV app's episode metadata is messy, and most of this file is cleanup:
+The Apple TV app's episode metadata is messy, and most of this file is cleanup:
 
 - Many complete-series purchases store every row as season 0, with the real
   season and episode inside the title: "Season 2, Episode 11: The Chinese
@@ -57,7 +57,7 @@ def classify(season, episode, name, secs):
     'long' (an unnumbered item 20+ minutes long, decided per show later).
     source says where the numbering came from, so duplicate purchases of the
     same season can be told apart: 'titled' (parsed out of a season-0 title)
-    or 'numbered' (the TV app's own season/episode fields)."""
+    or 'numbered' (the Apple TV app's own season/episode fields)."""
     m = TITLED.match(name)
     if m and not EXTRA.search(m.group(4) or ""):
         s = FINAL if m.group(2) else int(m.group(1))
@@ -129,7 +129,7 @@ def pick_episodes(rec):
         target = max(overlap, key=overlap.get) if overlap else top + 1
         for x in finals:
             x["s"] = target
-    # The TV app's own numbering counts bonus clips as episodes ("Inside Mad Men"
+    # The Apple TV app's own numbering counts bonus clips as episodes ("Inside Mad Men"
     # sits at e2 between e1 and e3), so after the clips are gone, renumber each
     # season's numbered rows 1..n in their original order.
     by = {}
