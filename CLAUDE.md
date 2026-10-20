@@ -9,6 +9,17 @@ work out the first time.
 installation (its host, rooms, machines, and the owner's preferences) and
 lives only in the owner's private copy, never in the public repo.
 
+**Public repo vs. private copy.** The public repo (`jnassi/movie-loft`) is
+code, docs, example settings, and a test library: **never library data,
+cover art, `movieloft.toml`, `corrections.toml`, `INSTANCE.md`, or anything
+about a particular household** (names, emails, home paths, device names,
+domains). Each owner runs a private copy (made from the template) that adds
+those and deploys from them; there, committing data is normal. Code changes
+go into the public repo first; a private copy takes them with
+`git fetch upstream && git merge upstream/main`. **Never `git pull` across
+the two**: with `pull.rebase` on, it tries to rebase the whole private
+history onto the public one (`git rebase --abort` undoes it).
+
 **Naming:** the project is **Movie Loft**. Apple's app is always **"the Apple
 TV app"**, never "the TV app", so the two can't be confused. The AppleScript
 target is still `tell application "TV"`.
@@ -31,8 +42,9 @@ target is still `tell application "TV"`.
 - **Keep `raw` titles unstripped.** One has a trailing space; `raw` is the art
   filename and the tag key. Strip only for lookups.
 - **The catalog is files in git, and a push to `main` is the deploy.** `make`
-  commits and pushes the data it regenerates, but leaves hand edits to
-  `corrections.toml` for the user to commit.
+  commits the data it regenerates (only files that exist) and pushes if
+  there's a remote; it leaves hand edits to `corrections.toml` for the user
+  to commit.
 - **TMDB attribution in the page footers is required by TMDB's terms.** Don't
   remove it.
 - **`template.html` holds the shared CSS** (`__BASE_CSS__` is filled from it
@@ -45,7 +57,7 @@ target is still `tell application "TV"`.
   tune queue.** When a golden changes on purpose, run
   `python3 tests/golden_test.py --update` and review the diff.
 - **Secrets never go in the repo:** `.tmdb.key` (gitignored),
-  `~/.movieloft-agent-token`, `~/.pyatv.conf`, and the Railway variables.
+  `~/.movieloft-agent-token`, `~/.pyatv.conf`, and the server's environment variables.
   Don't print them in output either.
 
 ## Setting up a new instance
@@ -54,7 +66,15 @@ Follow README.md's four levels in order; each one works before the next
 starts. Things that trip people up:
 
 - **The Apple TV app must be open** for the export. `update.sh` checks and
-  stops before touching anything if it isn't.
+  stops before touching anything if it isn't. The first export triggers
+  macOS's Automation prompt (Terminal → "TV"); if it was denied, it's in
+  System Settings → Privacy & Security → Automation.
+- **The Docker build needs the built pages, `art/`, `art-tv/`, and
+  `movieloft.toml` committed**, so run `make` before the first deploy.
+- **"Deployed" means an `https` `PUBLIC_URL`** (or Railway's
+  `RAILWAY_ENVIRONMENT`), not a particular host: deployed requires
+  `SESSION_SECRET`, sets Secure cookies, and refuses `DEV_NO_AUTH`. Any
+  Docker + Postgres host works; `railway.toml` is Railway's health check.
 - **Pairing PINs expire fast**, and the TV must be awake when pairing starts.
   If you're relaying a PIN for the user, start `atvremote … pair` in the
   background reading from a FIFO, and write the PIN to it the moment they
@@ -70,15 +90,22 @@ starts. Things that trip people up:
   (key, label, apple_tv), optional `[loop]`. The server validates rooms
   against it (the Dockerfile copies it), the helper maps room → Apple TV
   name, and `build_guide.py` embeds the room buttons (`__ROOMS__`) and the
-  loop channel. Changing rooms = edit, `make build-guide`, commit, push,
-  restart the helper. No file = no rooms ("This device" only) and no loop.
-  Keep household specifics out of the code; they belong here.
+  loop channel. Changing rooms = edit, `make`, then `make helper-restart`.
+  Locally, no file = no rooms ("This device" only) and no loop; the Docker
+  build requires it. Keep household specifics out of the code; they belong
+  here.
+- **`corrections.toml` is optional** everywhere (every reader treats a missing
+  file as empty); `corrections.example.toml` documents each section.
 - **`.dockerignore` excludes `*.toml`** (so `corrections.toml` stays out of
   the image) with a `!movieloft.toml` exception. Without that exception the
-  server boots with no rooms and refuses every room tune-in — which happened
-  for ~10 minutes on Oct 19, 2026. A new file the server needs must get past
-  `.dockerignore` too; check inside the container with
-  `railway ssh -- ls /srv`, not just that the build succeeded.
+  server boots with no rooms and refuses every room tune-in (it happened
+  once). A new file the server needs must get past `.dockerignore` too;
+  check inside the container (on Railway, `railway ssh -- ls /srv`), not
+  just that the build succeeded.
+- **The helper runs as a LaunchAgent** from `launchd/movieloft-tuner.plist.in`:
+  `make helper-install` fills in the paths and loads it, `make
+  helper-restart` after config or code changes, `make helper-log` to watch.
+  The label defaults to `local.movieloft.tuner` (`HELPER_LABEL=` overrides).
 - **Don't promise the Apple TV app has a Share → Copy Link.** It doesn't. To
   find a missing tv.apple.com link, web-search limited to tv.apple.com;
   tv.apple.com's own search renders with JavaScript, so scripts see only
@@ -239,6 +266,14 @@ and `catalog-shows.json` (gitignored intermediates) and embeds it in the page.
   `loop`. Adding a channel is one `add(...)`; the build warns about
   series/show names that match nothing.
 - Shared episode lists are embedded once in `REFS`, not per channel.
+- **Channel copies are configurable:** `[guide] copies` (default 1) runs
+  "Movie Roulette 2", "Marathon 3", etc. for the five busy formats;
+  `[guide.channel_copies]` overrides one format, and 0 turns it off. Channel
+  numbers are assigned in order, so changing copies renumbers what follows.
+- **A channel with nothing to air is left out** at build time (a small
+  library may have no show long enough for a Marathon), and the page's feeds
+  return nothing for an empty pool as a backstop. An empty Marathon pool used
+  to crash the scheduler.
 - **Short shows sit out:** fewer than `[guide] min_episodes` episodes owned
   (mostly one-off purchases) means it never airs, except on Comfort TV if
   tagged. `keep_shows` overrides (e.g. a four-part miniseries).
@@ -330,8 +365,8 @@ polls `/api/tune/{id}`. The helper only makes outbound requests.
   `ALTER TABLE … ADD COLUMN IF NOT EXISTS` there.
 - Without `DATABASE_URL`, an in-memory store mirrors the SQL rules (local dev
   and tests).
-- `DEV_NO_AUTH=1` skips sign-in locally; the server refuses it on Railway and
-  refuses to start there without `SESSION_SECRET`.
+- `DEV_NO_AUTH=1` skips sign-in locally; the server refuses it when deployed
+  and refuses to start deployed without `SESSION_SECRET`.
 - `update.sh` refuses to push when `art/` or `art-tv/` is suspiciously thin
   (fewer files than half the titles or shows).
 
@@ -341,12 +376,14 @@ polls `/api/tune/{id}`. The helper only makes outbound requests.
   diffs `index.html`, the `--check` report, and `build_tv.py --check
   --episodes` against `tests/golden/`. Reproducibility comes from two
   build.py hooks: `--root DIR` and `SOURCE_DATE_EPOCH`.
-- `tests/guide_test.mjs` (Node) lifts the scheduler out of the built
+- `tests/guide_test.mjs` (Node) lifts the scheduler out of a built
   `guide.html`, so it tests exactly what ships, and runs `buildDay()` over ten
   days in America/Denver, both DST changes included: day boundaries, :00/:30
   starts, no overlaps, nothing past 6 AM, test pattern only as sign-off, no
-  double-booking, determinism, and Comfort isolation. `update.sh` runs it as
-  a warning, not a gate.
+  double-booking, determinism, and Comfort isolation. `make test` runs it on
+  a guide built from a made-up library (`tests/guide_fixture.py`, so it works
+  in a fresh clone) and on the real `guide.html` if there is one. `update.sh`
+  runs it on the real one as a warning, not a gate.
 - `tests/tune_test.py` (needs `.venv`) drives the app in-process with the
   in-memory store: validation, the state machine, requeue, expiry, ordering,
   long-poll wake, `fromStart`. The SQL itself isn't exercised.

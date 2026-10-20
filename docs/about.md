@@ -34,9 +34,9 @@ that got me started. I found it through fellow Brandeis alum Lex Friedman's
 in his spotlight "Carter Fort built Coax so your local library is always
 'on.'" Point Coax at a Plex, Jellyfin, or Emby server and it scans your
 library and builds a lineup of channels you can flip through. That's exactly
-what I wanted, but my
-library isn't on a Plex server. It's hundreds of movies and thousands of
-episodes bought over the years in iTunes and then the Apple TV app.
+what I wanted, but my library isn't on a Plex server. It's hundreds of movies
+and thousands of episodes bought over the years in iTunes and then the Apple
+TV app.
 
 ### You can't get an Apple library into Plex, at least not legally
 
@@ -143,15 +143,17 @@ something easy. They also get their own channels in the guide.
 ### The Guide
 
 This is the part that's hard to explain until you see it. Movie Loft runs a
-**cable-style channel lineup made entirely from your own library**: 28
-channels, a full broadcast day, every day.
+**cable-style channel lineup made entirely from your own library**, a full
+broadcast day, every day. Mine has 28 channels, because I run three copies of
+the busiest formats, the way cable had HBO, HBO2, and HBO3; out of the box
+it's around 18.
 
 - **Real channels with a point of view:** The Franchise Channel (whole series,
   in order), decade channels, Director's Chair, Super Heroes, Starfleet, The
   Half Hour, The Hour, Marathon (several episodes of one show back to back),
   Movie Roulette, Channel Surf, Comfort Movies, Comfort TV… and **The Aria
   Channel**, which plays *Frozen*. Only *Frozen*. Forever. (More on that
-  below.)
+  below. Yours can loop whatever you like.)
 - **It behaves like TV.** Channels start at 2, like the cable box you
   grew up with. Programs start on the hour and half hour. The day
   runs from 6 AM to 6 AM. When a channel runs out of things that fit before
@@ -215,8 +217,10 @@ and its Tune in link.
 ### Private by design
 
 Movie Loft sits behind Google sign-in, open only to the accounts you list.
-Save it to your phone's home screen and it opens like an app. The only thing it stores about
-you is which titles you tagged as comfort picks.
+Save it to your phone's home screen and it opens like an app. Its database
+holds just two things: the titles you've tagged as comfort picks, and a log
+of Tune in requests. Your library itself lives in your own private GitHub
+repo.
 
 ---
 
@@ -238,8 +242,11 @@ exposed to the internet: the helper only ever calls out.
 - One or more **Apple TVs** for Tune in (optional; the pages and guide work
   without one).
 - A free **TMDB** account, for posters and release years.
-- For the hosted, private version: a **Railway** account and a **Google
-  Cloud** OAuth client (both have free tiers that cover this).
+- For the hosted, private version: a host that runs Docker and Postgres, and
+  a **Google Cloud** OAuth client for sign-in. I use
+  [Railway](https://railway.com), on the Pro Workspace plan I already have
+  for this and other projects; Movie Loft on its own should fit a
+  lower-priced plan, and other hosts work too.
 
 ## Honest limitations
 
@@ -252,8 +259,18 @@ exposed to the internet: the helper only ever calls out.
   example), but something will need fixing.
 - **Tune in needs a Mac that stays on**, on the same network as your Apple
   TVs.
-- **It's a personal project.** It's tuned to one library and one house, and
-  making it yours takes some setup (see the README).
+- **It's a personal project.** It started as one library in one house. It's
+  been generalized so anyone can run it, but expect some setup and the
+  occasional rough edge.
+
+---
+
+## Try it yourself
+
+The code is on GitHub: **[jnassi/movie-loft](https://github.com/jnassi/movie-loft)**,
+MIT-licensed. The README walks through setup in levels, from library pages on
+your Mac to the full guide with Tune in, and you can stop at any level. If
+you try it, I'd love to hear how it goes.
 
 ---
 

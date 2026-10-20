@@ -8,8 +8,9 @@ them into:
 - **Library pages:** every movie and show as a wall of covers, with franchises
   grouped in release order, real theatrical years, cleaned-up seasons, search,
   and "Surprise me."
-- **A channel guide:** 28 cable-style channels programmed from your own
-  library, the same lineup on every device, with On Now and Grid views.
+- **A channel guide:** a cable-style lineup programmed from your own library
+  (around 18 channels by default, more if you add HBO2-style copies), the same
+  on every device, with On Now and Grid views.
 - **Tune in:** tap a program, pick a room, and that Apple TV opens the movie
   or exact episode at the minute the "broadcast" has reached, then waits
   paused for you to press Play.
@@ -24,9 +25,9 @@ There's a longer product description in [`docs/about.md`](docs/about.md).
 > supplied the idea and the decisions, and tested it on real Apple TVs.
 > `CLAUDE.md` is the working notes Claude keeps for itself in this repo.
 
-> **Status:** a personal project, built for one library and one house. It
-> works, but making it yours takes some setup (see
-> [Making it yours](#making-it-yours)).
+> **Status:** a personal project that started as one library in one house,
+> since generalized so anyone can run it. It works, but expect some setup
+> (the levels below) and the occasional rough edge.
 
 ---
 
@@ -65,7 +66,7 @@ There's a longer product description in [`docs/about.md`](docs/about.md).
 | Posters, theatrical years | A free **TMDB** API key ([themoviedb.org](https://www.themoviedb.org/) → Settings → API) |
 | Private hosting | **Railway** (or any Docker host + Postgres) and a **Google Cloud** OAuth client |
 | Tune in | One or more **Apple TVs** on the same network as an always-on Mac; **Python 3.12** for [pyatv](https://pyatv.dev), which [uv](https://docs.astral.sh/uv/) installs for you (`brew install uv`) |
-| Tests | **Node** (`brew install node`) |
+| Tests | **Node** (`brew install node`); the Tune in queue test also needs the server's packages (see Level 3, *Local server*) |
 
 ## Setup
 
@@ -85,29 +86,36 @@ choose **Private**. Then clone your new repo:
 git clone git@github.com:<you>/<your-repo>.git movie-loft && cd movie-loft
 ```
 
-To pick up later improvements to Movie Loft itself, add this repo as a second
-remote and merge from it now and then:
+**Link it to this repo right away, before you change anything**, so you can
+pick up later improvements to Movie Loft. A copy made from a template starts
+its own history, so this one-time merge tells git the two share a starting
+point (`-s ours` keeps your files exactly as they are):
 
 ```sh
 git remote add upstream https://github.com/jnassi/movie-loft.git
+git fetch upstream
+git merge -s ours --allow-unrelated-histories upstream/main -m "Link to upstream Movie Loft"
+```
+
+After that, updating is:
+
+```sh
 git fetch upstream && git merge upstream/main
 ```
 
 Use `merge`, not `git pull`: if your git is set to rebase on pull, a pull
 tries to replay your whole history on top of this repo and stops on
-conflicts. (If that happens, `git rebase --abort` puts everything back.) The
-very first merge into a copy made from the template needs
-`--allow-unrelated-histories`, since the template starts a fresh history.
+conflicts. (If that happens, `git rebase --abort` puts everything back.)
+Your library files never conflict with updates, because this repo doesn't
+contain any.
 
-Your library files never conflict with those updates, because this repo
-doesn't contain any.
-
-Then make your two settings files from the examples. Both are commented, and
-you can edit them any time:
+Then make your two settings files from the examples and commit them. Both are
+commented, and you can edit them any time:
 
 ```sh
 cp movieloft.example.toml movieloft.toml        # your server, rooms, a loop channel
 cp corrections.example.toml corrections.toml    # fixes and channel rules for your library
+git add movieloft.toml corrections.toml && git commit -m "My settings"
 ```
 
 ### Level 1: library pages on your Mac
@@ -116,7 +124,10 @@ cp corrections.example.toml corrections.toml    # fixes and channel rules for yo
 echo "<your TMDB v3 key>" > .tmdb.key        # optional, gitignored
 ```
 
-Open the Apple TV app, then:
+Open the Apple TV app, then run the steps below. **The first export makes
+macOS ask whether Terminal may control the Apple TV app: click OK.** If you
+miss it or click Don't Allow, turn it on in System Settings → Privacy &
+Security → Automation.
 
 ```sh
 make export export-tv     # read the library: movies.tsv, episodes.tsv, art/, art-tv/
@@ -149,13 +160,19 @@ to run extra copies of the busy formats, cable style (HBO, HBO2, HBO3), set
 
 ### Level 3: private hosting with sign-in
 
-The repo includes a `Dockerfile` and `railway.toml`.
+The repo includes a `Dockerfile` and `railway.toml`. These steps use
+[Railway](https://railway.com); other hosts work too (see
+[Hosting somewhere else](#hosting-somewhere-else)).
+
+**First, run `make` once** (see step 4) so your built pages, art, and settings
+are committed. The server is built from your repo, and the build fails
+without them.
 
 1. **Google OAuth client.** In Google Cloud Console, create a project and set
    up the OAuth consent screen (External, **Testing** mode, add yourself as a
    test user). Then go to Credentials → Create OAuth client ID → Web
    application, with the redirect URI `https://<your host>/auth/callback`.
-2. **Railway.** Create a project from your GitHub fork, add a **Postgres**
+2. **Railway.** Create a project from your private repo, add a **Postgres**
    database, and set these variables on the web service:
 
    | Variable | Value |
@@ -189,7 +206,26 @@ To let someone else in, add them as a test user on the OAuth consent screen
 **Local server:** `python3 -m venv .venv && .venv/bin/pip install -r
 requirements.txt`, then `DEV_NO_AUTH=1 .venv/bin/uvicorn app.main:app` serves
 at localhost:8000 with no sign-in and in-memory storage. The server refuses to
-start with `DEV_NO_AUTH` on Railway.
+start with `DEV_NO_AUTH` once it's deployed (an `https` `PUBLIC_URL`).
+
+#### Hosting somewhere else
+
+Railway isn't required. The server needs four things from any host:
+
+- **Run a Docker container** from the repo's `Dockerfile`, passing the port
+  in `PORT` (defaults to 8000).
+- **Postgres**, with its connection string in `DATABASE_URL`. Without one the
+  server still runs, but comfort picks are lost on every restart.
+- **A public `https` address**, set as `PUBLIC_URL`. Google sign-in requires
+  `https`, and an `https` `PUBLIC_URL` is also how the server knows it's
+  deployed: it then insists on a real `SESSION_SECRET`, marks cookies
+  secure, and refuses `DEV_NO_AUTH`.
+- **A way to redeploy** when you push, or a deploy command you run after
+  `make`.
+
+Fly.io, Render, or your own server running Docker all fit. Railway-specific
+bits: `railway.toml` (its health check), and the `${{Postgres.DATABASE_URL}}`
+shorthand in the variables table; elsewhere, paste the real connection string.
 
 ### Level 4: Tune in
 
@@ -221,13 +257,12 @@ The helper runs on an always-on Mac on the same network as your Apple TVs.
      "https://tv.apple.com/us/movie/<slug>/umc.cmc.<id>" 600 "<Movie title>"
    ```
 
-4. **Configure your rooms.** Copy `movieloft.example.toml` to
-   `movieloft.toml`, set `url` to your server's address, and add a
-   `[[rooms]]` block for each Apple TV, with `apple_tv` exactly as
-   `atvremote scan` names it. Commit it, since the server reads it too, then
-   rebuild the guide (`make build-guide`) so the room buttons appear. Put the
-   same value as Railway's `AGENT_TOKEN` in `~/.movieloft-agent-token`
-   (`chmod 600`).
+4. **Configure your rooms.** In `movieloft.toml` (from Level 0), set `url` to
+   your server's address and add a `[[rooms]]` block for each Apple TV, with
+   `apple_tv` exactly as `atvremote scan` names it. Then run `make`, which
+   rebuilds the guide with the room buttons and commits and pushes, since the
+   server reads the file too. Put the same value as your server's
+   `AGENT_TOKEN` in `~/.movieloft-agent-token` (`chmod 600`).
 5. **Run it at login:**
 
    ```sh
@@ -243,9 +278,9 @@ The helper runs on an always-on Mac on the same network as your Apple TVs.
    it, the helper can't find any Apple TV, even though the same command works
    from Terminal.
 
-**After a restart**, the helper runs only once someone logs in. FileVault rules
-out auto-login, so for a planned restart use `sudo fdesetup authrestart`,
-which comes back up logged in.
+**After a restart**, the helper runs only once someone logs in. If FileVault
+is on (it usually is), auto-login isn't available, so for a planned restart
+use `sudo fdesetup authrestart`, which comes back up logged in.
 
 ## Making it yours
 
@@ -290,8 +325,8 @@ fetch_tv_art.py                             TMDB show posters → art-tv/, tv-ar
 fetch_streaming.py                          streamed shows from TMDB → streaming.json
 fetch_apple_ids.py                          Apple TV movie/show IDs (Wikidata) → apple-ids.json
 fetch_episode_ids.py                        Apple TV episode IDs (tv.apple.com) → episode-ids.json
-corrections.toml                            hand-edited fixes and channel rules for your library
-movieloft.toml                              your instance: server url, rooms, loop channel
+corrections.example.toml → corrections.toml  fixes and channel rules for your library
+movieloft.example.toml → movieloft.toml      your instance: server url, rooms, loop channel
 app/instance.py                             reads movieloft.toml
 update.sh                                   what `make` runs
 app/                                        web server: pages, sign-in, tags, Tune in queue
@@ -311,10 +346,12 @@ make test
   of the Apple TV app's quirks, and compare the output to checked-in goldens.
   When you change the build on purpose, run
   `python3 tests/golden_test.py --update` and review the diff.
-- **Guide test** (`tests/guide_test.mjs`) runs the scheduler shipped in
-  `guide.html` over ten days, including both daylight-saving changes, and
-  checks its rules: no overlaps, :00/:30 starts, nothing past 6 AM, nothing on
-  two channels at once.
+- **Guide test** (`tests/guide_test.mjs`) runs the guide's own scheduler over
+  ten days, including both daylight-saving changes, and checks its rules: no
+  overlaps, :00/:30 starts, nothing past 6 AM, nothing on two channels at
+  once. It runs on a guide built from a made-up library
+  (`tests/guide_fixture.py`), so it works in a fresh clone, and on your real
+  `guide.html` too once you have one.
 - **Queue test** (`tests/tune_test.py`) drives the server's Tune in queue
   in-process: claiming, confirming, requeueing, expiring.
 

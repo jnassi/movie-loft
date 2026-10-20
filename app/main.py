@@ -16,7 +16,7 @@ Environment:
   DATABASE_URL                              Postgres (Railway provides it)
   PUBLIC_URL                                e.g. https://movieloft.example.com
   AGENT_TOKEN                               shared secret for the Tune in helper on the Mac
-  DEV_NO_AUTH=1                             local only: skip sign-in. Refused on Railway.
+  DEV_NO_AUTH=1                             local only: skip sign-in. Refused when deployed.
 """
 import asyncio, os, secrets, time
 from pathlib import Path
@@ -32,20 +32,24 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import instance, store
 
 ROOT = Path(__file__).resolve().parent.parent
-ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
 DEV_NO_AUTH = os.environ.get("DEV_NO_AUTH") == "1"
-if DEV_NO_AUTH and ON_RAILWAY:
-    raise RuntimeError("DEV_NO_AUTH is for local development only — refusing to start on Railway")
 
 CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 ALLOWED = {e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://localhost:8000").rstrip("/")
+# Deployed = reachable from the internet, on any host: an https PUBLIC_URL, or
+# Railway (which sets RAILWAY_ENVIRONMENT). Deployed means a real session
+# secret, Secure cookies, and no DEV_NO_AUTH.
+DEPLOYED = PUBLIC_URL.startswith("https://") or bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+if DEV_NO_AUTH and DEPLOYED:
+    raise RuntimeError("DEV_NO_AUTH is for local development only — refusing to start when deployed "
+                       "(PUBLIC_URL is https, or this is Railway)")
 AGENT_TOKEN = os.environ.get("AGENT_TOKEN", "")
 SESSION_SECRET = os.environ.get("SESSION_SECRET") or (
-    None if ON_RAILWAY else "dev-only-not-secret")
+    None if DEPLOYED else "dev-only-not-secret")
 if not SESSION_SECRET:
-    raise RuntimeError("SESSION_SECRET must be set on Railway")
+    raise RuntimeError("SESSION_SECRET must be set when deployed")
 
 GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN = "https://oauth2.googleapis.com/token"
@@ -82,7 +86,7 @@ async def require_login(request: Request, call_next):
 
 # Added after the gate so it wraps it: the gate needs request.session.
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, session_cookie="movieloft",
-                   max_age=60 * 60 * 24 * 90, same_site="lax", https_only=ON_RAILWAY)
+                   max_age=60 * 60 * 24 * 90, same_site="lax", https_only=DEPLOYED)
 # Outermost: compress what goes out. The guide carries every episode's Apple TV
 # ID (~500 KB raw, ~250 KB gzipped), and Railway's edge doesn't compress.
 app.add_middleware(GZipMiddleware, minimum_size=1000)

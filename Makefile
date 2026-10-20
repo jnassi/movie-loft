@@ -40,7 +40,8 @@ test:                    ## goldens + guide scheduler rules + tune-in queue
 	python3 tests/golden_test.py
 	node tests/guide_test.mjs "$$(python3 tests/guide_fixture.py)" "guide (made-up library)"
 	@if [ -f guide.html ]; then node tests/guide_test.mjs guide.html "guide (your library)"; fi
-	.venv/bin/python tests/tune_test.py
+	@if [ -x .venv/bin/python ]; then .venv/bin/python tests/tune_test.py; \
+	 else echo "tune: skipped (needs the server's packages: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt)"; fi
 
 # ---- Tune in helper (an always-on Mac; see README, Level 4)
 HELPER_LABEL ?= local.movieloft.tuner
