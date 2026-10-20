@@ -1,0 +1,41 @@
+# Fixture corrections for the golden test. Small, but every block exercises a
+# branch of build.py.
+
+[years]
+# Goodfellas carries a release-date column that derives 1990 on its own, so it
+# counts toward the "reproduced" tally. The Rock is a plain 3-column row with no
+# release date, so the column can't derive it — together they make the N/M
+# report say 1/2 rather than a trivial 1/1.
+"Goodfellas (Remastered Feature)" = 1990
+"The Rock" = 1996
+
+[directors]
+"8 Mile" = "Curtis Hanson"
+"Tremors" = "Ron Underwood"
+
+# ---------------------------------------------------------------- series rules
+# Alien exercises all three matchers at once: regex join (Alien, Aliens),
+# `also` join (Prometheus), and `never` kicking out Alien Nation, which
+# ^Aliens?\b would otherwise catch.
+[series."Alien"]
+match = ["^Aliens?\\b"]
+also = ["Prometheus"]
+never = ["Alien Nation"]
+
+[series."Back to the Future"]
+match = ["^Back to the Future"]
+
+# Deliberately overlaps Back to the Future so the golden covers the
+# "matches more than one series" warning. Listed second, so it loses.
+[series."Time Travel"]
+match = ["^Back to"]
+
+[series."Ghostbusters"]
+match = ["^Ghostbusters"]
+
+[series."Die Hard"]
+match = ["Die Hard"]
+
+# Typo'd on purpose: nothing in the library matches, so --check flags it.
+[series."Jurassic Park"]
+match = ["^Jurassik Park"]

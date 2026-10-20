@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie Loft · Movies</title>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Movie Loft">
+<meta name="theme-color" content="#171A24">
+<style>
+  :root{
+    --ink:#171A24; --panel:#212636; --panel-2:#252A3A; --rule:#333A50;
+    --paper:#ECE7DC; --muted:#8C93A8; --amber:#E0A340; --teal:#6FAEA2;
+    --display:"Futura","Jost","Avenir Next Condensed",system-ui,sans-serif;
+    --body:"Avenir Next","Avenir",-apple-system,BlinkMacSystemFont,sans-serif;
+    --data:"SF Mono","Menlo",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--paper);font-family:var(--body);
+       -webkit-font-smoothing:antialiased}
+  header{position:sticky;top:0;z-index:20;background:rgba(23,26,36,.94);
+         backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+  .bar{max-width:1500px;margin:0 auto;padding:18px 24px;display:flex;
+       align-items:baseline;gap:24px;flex-wrap:wrap}
+  h1{font-family:var(--display);font-weight:500;font-size:26px;margin:0;
+     letter-spacing:.14em;text-transform:uppercase}
+  .nav{display:flex;gap:14px;font-family:var(--data);font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase}
+  .nav a{color:var(--muted);text-decoration:none}
+  .nav a[aria-current=page]{color:var(--amber)}
+  .tally{font-family:var(--data);font-size:11px;color:var(--muted);
+         letter-spacing:.08em;white-space:nowrap}
+  .tally b{color:var(--amber);font-weight:500}
+  .controls{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  input[type=search]{background:var(--panel);border:1px solid var(--rule);
+    color:var(--paper);font-family:var(--body);font-size:14px;padding:8px 12px;
+    border-radius:2px;width:230px}
+  input[type=search]::placeholder{color:var(--muted)}
+  input[type=search]:focus,button:focus-visible{outline:2px solid var(--amber);
+    outline-offset:2px}
+  .toggle{display:flex;font-family:var(--data);font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--rule)}
+  .toggle button{background:none;border:0;color:var(--muted);padding:7px 11px;
+    cursor:pointer;font:inherit}
+  .toggle button[aria-pressed=true]{background:var(--amber);color:#1A1508}
+  main{max-width:1500px;margin:0 auto;padding:26px 24px 80px}
+  /* one grid, one cell per film, every cell the same shape */
+  .grid{display:grid;gap:20px 14px;
+        grid-template-columns:repeat(auto-fill,minmax(198px,1fr))}
+  .film{display:flex;flex-direction:column;padding:8px 8px 10px;
+        border-top:2px solid transparent;background:transparent}
+  .film.grouped{background:var(--panel);border-top-color:var(--amber)}
+  /* the banner: a series label on the film itself, so runs read as a set
+     no matter where the row happens to break */
+  .band{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    height:14px;margin-bottom:8px;font-family:var(--data);font-size:9.5px;
+    letter-spacing:.11em;text-transform:uppercase;color:var(--amber);
+    white-space:nowrap;overflow:hidden}
+  .band .nm{overflow:hidden;text-overflow:ellipsis}
+  .band .n{color:var(--muted);flex:none}
+  .film:not(.grouped) .band{visibility:hidden}
+  .art{position:relative;aspect-ratio:16/9;background:var(--panel-2);
+    border:1px solid var(--rule);overflow:hidden;display:flex;
+    align-items:center;justify-content:center}
+  .art .ph{font-family:var(--display);text-transform:uppercase;
+    letter-spacing:.06em;font-size:12px;line-height:1.35;color:#5E657D;
+    padding:10px;text-align:center}
+  .art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transition:opacity .35s ease}
+  .art img.on{opacity:1}
+  .art img.tall{object-fit:contain;background:var(--panel-2)}
+  .ed{position:absolute;left:0;bottom:0;z-index:2;font-family:var(--data);
+    font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink);background:var(--teal);padding:2px 5px}
+  .meta{margin-top:8px}
+  .name{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden;height:2.6em}
+  .sub{font-family:var(--data);font-size:10.5px;color:var(--muted);
+    letter-spacing:.02em;margin-top:3px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .sub .yr{color:var(--teal)}
+  .reissue{color:var(--amber);cursor:help}
+  #whatsnew{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    margin:0 0 22px;padding:10px 14px;background:var(--panel);
+    border-left:2px solid var(--teal);font-family:var(--data);font-size:11px;
+    letter-spacing:.04em;color:var(--paper)}
+  #whatsnew b{color:var(--teal);font-weight:500}
+  #onlynew{background:none;border:1px solid var(--rule);color:var(--muted);
+    font:inherit;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;
+    cursor:pointer}
+  #onlynew[aria-pressed=true]{background:var(--teal);color:var(--ink);
+    border-color:var(--teal)}
+  #surprise{background:var(--amber);color:#1A1508;border:0;font-family:var(--data);
+    font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;
+    padding:8px 13px;cursor:pointer}
+  #surprise:hover{filter:brightness(1.08)}
+  /* surprise-me modal: a bigger copy of one card over a dimmed backdrop */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;
+    justify-content:center;padding:24px}
+  .modal[hidden]{display:none}
+  .modal-back{position:absolute;inset:0;background:rgba(9,11,16,.82);
+    backdrop-filter:blur(4px)}
+  .modal-inner{position:relative;z-index:1;width:min(520px,92vw);display:flex;
+    flex-direction:column;gap:16px;animation:pop .18s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .modal-card{padding:14px 14px 16px;background:var(--panel);
+    border-top:2px solid var(--amber)}
+  .modal-card .name{font-size:22px;line-height:1.2;height:auto;
+    -webkit-line-clamp:unset;white-space:normal;overflow:visible}
+  .modal-card .sub{font-size:13px;white-space:normal;overflow:visible}
+  .modal-actions{display:flex;gap:10px;justify-content:center}
+  .modal-actions button{font-family:var(--data);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;padding:9px 14px;cursor:pointer;border:1px solid var(--rule)}
+  #pickAgain{background:var(--amber);color:#1A1508;border-color:var(--amber);font-weight:500}
+  #pickClose{background:none;color:var(--muted)}
+  .flag{position:absolute;right:0;top:0;z-index:2;font-family:var(--data);
+    font-size:8.5px;letter-spacing:.1em;color:var(--ink);background:var(--teal);
+    padding:2px 5px}
+  /* comfort tags (needs the Movie Loft server; hidden when opened as a file) */
+  .comfort{position:absolute;left:0;top:0;z-index:2;font-size:11px;line-height:1;
+    color:var(--ink);background:var(--amber);padding:3px 5px}
+  .tagui[hidden]{display:none}
+  #onlyComfort{background:none;border:1px solid var(--rule);color:var(--muted);
+    font-family:var(--data);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:8px 11px;cursor:pointer}
+  #onlyComfort[aria-pressed=true]{background:var(--amber);color:#1A1508;border-color:var(--amber)}
+  .tagBtn{background:none;border:1px solid var(--amber)!important;color:var(--amber)}
+  .tagBtn[aria-pressed=true]{background:var(--amber);color:#1A1508}
+  .gone{color:var(--muted)}
+  .gone s{color:#6C748C}
+  .empty{font-family:var(--data);font-size:12px;color:var(--muted);
+    grid-column:1/-1;padding:40px 0}
+  footer{max-width:1500px;margin:0 auto;padding:0 24px 60px;
+    font-family:var(--data);font-size:11px;line-height:1.9;color:var(--muted)}
+  footer b{color:var(--paper);font-weight:500}
+  @media (max-width:700px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:16px 10px}
+    .name{font-size:12px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Movie Loft</h1>
+    <nav class="nav"><a href="index.html" aria-current="page">Movies</a><a href="tv.html">TV Shows</a><a href="guide.html">Guide</a></nav>
+    <div class="tally"><b id="shown">0</b> of __TOTAL__ titles &middot; __SETS__ series
+      &middot; updated __UPDATED__</div>
+    <div class="controls">
+      <input type="search" id="q" placeholder="Search title, director, series" autocomplete="off">
+      <div class="toggle" role="group" aria-label="Sort by">
+        <button id="mTitle" aria-pressed="true">Title</button>
+        <button id="mYear" aria-pressed="false">Release year</button>
+      </div>
+      <div class="toggle" role="group" aria-label="Direction">
+        <button id="dAsc" aria-pressed="true">A&ndash;Z</button>
+        <button id="dDesc" aria-pressed="false">Z&ndash;A</button>
+      </div>
+      <button id="onlyComfort" class="tagui" hidden aria-pressed="false" title="Show only Comfort Movies">&hearts; Comfort</button>
+      <button id="surprise" title="Pick a movie at random">Surprise me</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div id="whatsnew" hidden>
+    <span id="newtext"></span>
+    <button id="onlynew" aria-pressed="false">Show only these</button>
+  </div>
+  <div class="grid" id="shelf"></div>
+</main>
+<footer>
+  Sort by title &mdash; series stay together at the series' own alphabetical spot
+  &mdash; or by release year across the whole library. Inside a series, films run in
+  release order, flipping with everything else in Z&ndash;A.
+  Leading &ldquo;The&rdquo; and &ldquo;A&rdquo; are ignored.<br>
+  <b>__FIXED__ titles</b> show their original US theatrical year (from TMDB)
+  instead of the store's reissue date; a real re-release is noted in
+  <span class="reissue">amber</span>.
+  <b>__NODIR__ blank directors</b> filled in.<br>
+  Posters load from <b>art/</b> if the export has run, otherwise from the iTunes
+  Search API as you scroll. Your most recent import is flagged at the top &mdash;
+  that's the list to check against Recent Purchases in the TV app.<br>
+  Generated by build.py &mdash; edit corrections.toml, not this file.<br>
+  This product uses the TMDB API but is not endorsed or certified by
+  <a href="https://www.themoviedb.org/" style="color:var(--muted)">TMDB</a>.
+</footer>
+<div id="pick" class="modal" hidden role="dialog" aria-modal="true" aria-label="Movie details">
+  <div class="modal-back" id="pickBack"></div>
+  <div class="modal-inner">
+    <article id="pickCard" class="film"></article>
+    <div class="modal-actions">
+      <button id="pickComfort" class="tagui tagBtn" hidden aria-pressed="false">&hearts; Comfort Movie</button>
+      <button id="pickAgain">Surprise me again</button>
+      <button id="pickClose">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+const DATA = __DATA__;
+let TAGS = null;                 // comfort tags from the server; null until (unless) they load
+function isComfort(f){ return !!TAGS && TAGS.has(f.raw); }
+const shelf = document.getElementById('shelf');
+const shownEl = document.getElementById('shown');
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const artPath = raw => 'art/' + encodeURIComponent(raw.replace(/[/:]/g, '_')) + '.jpg';
+const norm = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// The card's inner markup. Shared by the grid and the "surprise me" modal, so
+// the modal is a genuine bigger copy of the same card, not a second layout.
+function cardInner(f){
+  const reissue = f.reissue
+    ? ` <span class="reissue" title="${f.year} theatrical &middot; re-released ${f.reissue}">(reissue ${f.reissue})</span>` : '';
+  const sub = `<span class="yr">${f.year||'—'}</span>${reissue}${
+    f.director ? ' &middot; ' + esc(f.director) : ''}`;
+  return `<div class="band"><span class="nm">${esc(f.set||'·')}</span>${
+       f.of > 1 ? `<span class="n">${f.idx}/${f.of}</span>` : ''}</div>
+     <div class="art">
+       <div class="ph">${esc(f.title)}</div>
+       ${f.edition ? `<span class="ed">${esc(f.edition)}</span>` : ''}
+       ${f.isNew ? '<span class="flag">New</span>' : ''}
+       ${isComfort(f) ? '<span class="comfort" title="Comfort Movie">&hearts;</span>' : ''}
+     </div>
+     <div class="meta">
+       <div class="name" title="${esc(f.title)}">${esc(f.title)}</div>
+       <div class="sub" title="${esc(f.director || '')}">${sub}</div>
+     </div>`;
+}
+
+DATA.forEach((f, i) => {
+  const el = document.createElement('article');
+  el.dataset.i = i;
+  el.tabIndex = 0;
+  el.style.cursor = 'pointer';
+  el.onclick = () => showPick(i, false);
+  el.onkeydown = e => { if (e.key === 'Enter') showPick(i, false); };
+  el.className = 'film' + (f.set ? ' grouped' : '');
+  el.dataset.hay = norm(f.title + ' ' + (f.director||'') + ' ' + (f.set||'') + ' ' + (f.year||''));
+  el.dataset.year = f.year || 0;
+  el.dataset.sort = f.title.toLowerCase().replace(/^(the|a|an) /, '');
+  el.dataset.set = f.set || '';
+  el.dataset.gk = f.gk;
+  el.dataset.gidx = f.idx;
+  el.dataset.added = f.added;
+  if (f.isNew) el.dataset.new = '1';
+  el.innerHTML = cardInner(f);
+  const art = el.querySelector('.art');
+  art.dataset.raw = f.raw;
+  art.dataset.title = f.title;
+  art.dataset.y = f.year || '';
+  shelf.appendChild(el);
+});
+
+/* ---------- poster loading: local folder first, then iTunes, lazily ---------- */
+const queue = [];
+let draining = false;
+
+function attach(art, img){
+  if (img.naturalHeight > img.naturalWidth) img.classList.add('tall');
+  art.appendChild(img);
+  requestAnimationFrame(() => img.classList.add('on'));
+}
+function drain(){
+  if (draining || !queue.length) return;
+  draining = true;
+  lookup(queue.shift(), () => { draining = false; setTimeout(drain, 300); });
+}
+function lookup(art, done){
+  const cb = 'itc' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let settled = false;
+  const finish = () => { if (settled) return; settled = true; s.remove();
+                         delete window[cb]; done(); };
+  window[cb] = res => {
+    const want = norm(art.dataset.title), yr = parseInt(art.dataset.y, 10);
+    let best = null, bestScore = 0;
+    for (const r of (res && res.results) || []){
+      const rn = norm(r.trackName || '');
+      const ry = parseInt((r.releaseDate || '').slice(0, 4), 10);
+      let sc = rn === want ? 4 : (rn.includes(want) || want.includes(rn) ? 2 : 0);
+      if (sc && yr && ry && Math.abs(ry - yr) <= 1) sc += 2;
+      if (sc > bestScore){ bestScore = sc; best = r; }
+    }
+    if (best && best.artworkUrl100){
+      const img = new Image();
+      img.alt = '';
+      img.onload = () => attach(art, img);
+      img.src = best.artworkUrl100.replace(/100x100bb/, '600x600bb');
+    }
+    finish();
+  };
+  s.onerror = finish;
+  s.src = 'https://itunes.apple.com/search?media=movie&entity=movie&country=US&limit=8'
+        + '&term=' + encodeURIComponent(art.dataset.title.replace(/[:\-–—]/g, ' '))
+        + '&callback=' + cb;
+  document.head.appendChild(s);
+  setTimeout(finish, 6000);
+}
+// Load one poster into an .art element: local folder first, iTunes on miss.
+// Shared by the lazy grid observer and the modal.
+function loadPoster(art){
+  const local = new Image();
+  local.alt = '';
+  local.onload = () => attach(art, local);
+  local.onerror = () => { queue.push(art); drain(); };
+  local.src = artPath(art.dataset.raw);
+}
+const io = new IntersectionObserver((entries, obs) => {
+  for (const e of entries){
+    if (!e.isIntersecting) continue;
+    obs.unobserve(e.target);
+    loadPoster(e.target);
+  }
+}, {rootMargin: '500px'});
+document.querySelectorAll('.art').forEach(a => io.observe(a));
+
+/* ---------------------------- search + ordering ---------------------------- */
+const q = document.getElementById('q');
+let onlyNew = false, onlyComfort = false;
+function filter(){
+  const term = norm(q.value);
+  let n = 0;
+  for (const f of shelf.children){
+    if (!f.classList.contains('film')) continue;
+    const hit = (!term || f.dataset.hay.includes(term))
+             && (!onlyNew || f.dataset.new === '1')
+             && (!onlyComfort || isComfort(DATA[+f.dataset.i]));
+    f.style.display = hit ? '' : 'none';
+    if (hit) n++;
+  }
+  shownEl.textContent = n;
+  let none = shelf.querySelector('.empty');
+  if (!n && !none){
+    none = document.createElement('p');
+    none.className = 'empty';
+    none.textContent = onlyComfort ? 'No Comfort Movies yet. Open a movie and tap ♥ Comfort Movie.'
+      : onlyNew ? 'No recent imports to show.'
+      : 'Nothing matches that. Try a director, a series, or a year.';
+    shelf.appendChild(none);
+  } else if (n && none) none.remove();
+}
+q.addEventListener('input', filter);
+
+// Title mode keeps a series together at the series' alphabetical slot;
+// year mode ignores grouping and runs the whole library chronologically.
+// Either way, films inside a series stay in release order.
+let mode = 'title';
+const dir = {title: 'asc', year: 'desc'};
+const btn = id => document.getElementById(id);
+
+function sortNow(){
+  const d = dir[mode];
+  const films = [...shelf.querySelectorAll('.film')];
+  films.sort((a, b) => {
+    if (mode === 'title'){
+      const c = a.dataset.gk.localeCompare(b.dataset.gk);
+      if (c) return d === 'asc' ? c : -c;
+      const g = (+a.dataset.gidx) - (+b.dataset.gidx);
+      return d === 'asc' ? g : -g;
+    }
+    const c = (+a.dataset.year) - (+b.dataset.year);
+    if (c) return d === 'asc' ? c : -c;
+    return a.dataset.sort.localeCompare(b.dataset.sort);
+  });
+  const frag = document.createDocumentFragment();
+  films.forEach(f => frag.appendChild(f));
+  shelf.appendChild(frag);
+  const none = shelf.querySelector('.empty');
+  if (none) shelf.appendChild(none);
+
+  btn('mTitle').setAttribute('aria-pressed', mode === 'title');
+  btn('mYear').setAttribute('aria-pressed', mode === 'year');
+  const labels = {title: ['A–Z', 'Z–A'], year: ['Oldest', 'Newest']};
+  btn('dAsc').textContent = labels[mode][0];
+  btn('dDesc').textContent = labels[mode][1];
+  btn('dAsc').setAttribute('aria-pressed', d === 'asc');
+  btn('dDesc').setAttribute('aria-pressed', d === 'desc');
+}
+btn('mTitle').onclick = () => { mode = 'title'; sortNow(); };
+btn('mYear').onclick = () => { mode = 'year'; sortNow(); };
+btn('dAsc').onclick = () => { dir[mode] = 'asc'; sortNow(); };
+btn('dDesc').onclick = () => { dir[mode] = 'desc'; sortNow(); };
+const ADDED = __ADDED__, GONE = __GONE__, RECENT = "__RECENT__";
+const strip = document.getElementById('whatsnew');
+if (ADDED || GONE.length){
+  const bits = [];
+  if (ADDED) bits.push(`<b>${ADDED}</b> ${ADDED === 1 ? 'title' : 'titles'} from your latest import` +
+    (RECENT ? ` (${RECENT})` : ''));
+  if (GONE.length) bits.push(`<span class="gone">${GONE.length} no longer in the library: ` +
+    GONE.map(g => `<s>${esc(g.title)}</s>`).join(', ') + '</span>');
+  document.getElementById('newtext').innerHTML = bits.join(' &middot; ');
+  strip.hidden = false;
+  if (!ADDED) document.getElementById('onlynew').hidden = true;
+}
+document.getElementById('onlynew').onclick = e => {
+  onlyNew = !onlyNew;
+  e.currentTarget.setAttribute('aria-pressed', onlyNew);
+  filter();
+};
+
+/* ------------- movie details: a card click or surprise me (one modal) ------------- */
+const pickModal = document.getElementById('pick');
+const pickCard = document.getElementById('pickCard');
+const pickAgain = document.getElementById('pickAgain');
+const pickComfort = document.getElementById('pickComfort');
+let lastPick = -1, current = -1, opener = null;
+function showPick(i, random){
+  current = i;
+  if (pickModal.hidden) opener = document.activeElement;
+  const f = DATA[i];
+  pickCard.className = 'film modal-card' + (f.set ? ' grouped' : '');
+  pickCard.innerHTML = cardInner(f);
+  const art = pickCard.querySelector('.art');
+  art.dataset.raw = f.raw; art.dataset.title = f.title; art.dataset.y = f.year || '';
+  loadPoster(art);
+  pickAgain.textContent = random ? 'Surprise me again' : 'Surprise me';
+  pickComfort.setAttribute('aria-pressed', isComfort(f));
+  pickModal.hidden = false;
+  pickAgain.focus();
+}
+function surprise(){
+  let i = Math.floor(Math.random() * DATA.length);
+  while (DATA.length > 1 && i === lastPick) i = Math.floor(Math.random() * DATA.length);
+  lastPick = i;
+  showPick(i, true);
+}
+function closePick(){ pickModal.hidden = true; (opener || document.getElementById('surprise')).focus(); }
+document.getElementById('surprise').onclick = surprise;
+pickAgain.onclick = surprise;
+document.getElementById('pickClose').onclick = closePick;
+document.getElementById('pickBack').onclick = closePick;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !pickModal.hidden) closePick();
+});
+
+/* --------- comfort tags: stored by the Movie Loft server, keyed by raw title --------- */
+// Opened as a plain file (or the server is down), /api/tags fails and the tag
+// controls simply stay hidden — the page still works as a catalog.
+function applyTags(json){
+  TAGS = new Set(((json.comfort || {}).movie) || []);
+  for (const el of shelf.querySelectorAll('.film')){
+    const f = DATA[+el.dataset.i], art = el.querySelector('.art');
+    const badge = art.querySelector('.comfort');
+    if (isComfort(f) && !badge) art.insertAdjacentHTML('beforeend', '<span class="comfort" title="Comfort Movie">&hearts;</span>');
+    if (!isComfort(f) && badge) badge.remove();
+  }
+  if (current >= 0) pickComfort.setAttribute('aria-pressed', isComfort(DATA[current]));
+  document.querySelectorAll('.tagui').forEach(b => b.hidden = false);
+  filter();
+}
+fetch('/api/tags').then(r => r.ok ? r.json() : Promise.reject()).then(applyTags).catch(() => {});
+pickComfort.onclick = () => {
+  const f = DATA[current];
+  fetch('/api/tags', {method: 'PUT', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({kind: 'movie', key: f.raw, tag: 'comfort', on: !isComfort(f)})})
+    .then(r => r.ok ? r.json() : Promise.reject()).then(applyTags)
+    .catch(() => alert("Couldn't save that — are you still signed in?"));
+};
+document.getElementById('onlyComfort').onclick = e => {
+  onlyComfort = !onlyComfort;
+  e.currentTarget.setAttribute('aria-pressed', onlyComfort);
+  filter();
+};
+
+sortNow();
+filter();
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Movie Loft — your instance's settings. Copy this file to movieloft.toml and
+# edit it. Everything specific to your household lives here; the code has none
+# of it. Without movieloft.toml, the pages and guide still work, and Tune in
+# offers only "This device".
+
+# Where your Movie Loft server lives (Railway, or your own host). The Tune in
+# helper on your Mac calls it. MOVIELOFT_URL in the environment overrides it.
+url = "https://movieloft.example.com"
+
+# One [[rooms]] block per Apple TV, in the order the Tune in buttons appear.
+#   key       short id: lowercase letters, digits, dashes ("here" is taken)
+#   label     the button text
+#   apple_tv  the Apple TV's name exactly as `atvremote scan` shows it
+[[rooms]]
+key = "living"
+label = "Living Room"
+apple_tv = "Living Room"
+
+# [[rooms]]
+# key = "bedroom"
+# label = "Bedroom"
+# apple_tv = "Bedroom"
+
+# Optional: a channel that plays one movie on a loop, all day, every day.
+# Delete this block if you don't want one. `movie` is the title as it appears
+# on the Movies page.
+[loop]
+name = "The Frozen Channel"
+movie = "Frozen"
+blurb = "Frozen. Only Frozen. Forever."

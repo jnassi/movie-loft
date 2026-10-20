@@ -1,0 +1,32 @@
+6 shows (0 streamed) · 18 episodes · 5 extras set aside · 5 duplicate-purchase episodes collapsed
+
+No episodes left after removing extras (not shown):
+  - Freebie Only (1 extras)
+
+Per show (episodes / extras):
+     2 /   3  Clip Show
+           S1 E1  Opener  (46 min)
+           S1 E2  Closer  (46 min)
+     2 /   0  Final Show
+           S1 E1  Start  (45 min)
+           S2 E1  Blood Money  (47 min)
+     5 /   0  Messy Titles
+           S1 E2  Comma  (23 min)
+           S1 E11  Squished  (23 min)
+           S2 E4  Colon  (23 min)
+           S3 E3  Double  (46 min)
+           S6 E1  Half Season  (23 min)
+     2 /   1  Mini Series
+           S1 E1  Mini, Pt. 1: Start  (60 min)
+           S1 E2  Mini, Pt. 2: End  (60 min)
+     4 /   0  Plain Show
+           S1 E1  Pilot  (21 min)
+           S1 E2  Second  (21 min)
+           S2 E1  Return  (21 min)
+           S2 E2  He Shall, From Time to Time…  (21 min)
+     3 /   0  Split Show
+           S2 E1  The Doorway, Pt. 1  (47 min)
+           S2 E2  The Doorway, Pt. 2  (47 min)
+           S2 E3  Collaborators  (47 min)
+
+--check: nothing written.

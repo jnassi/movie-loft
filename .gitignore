@@ -1,0 +1,17 @@
+# Cover art (art/, art-tv/) and the built pages are committed on purpose: they
+# ARE the deployed site (the Dockerfile copies them). `make` regenerates and
+# commits them.
+
+# TMDB API key for lookup_years.py — never commit it
+.tmdb.key
+
+.DS_Store
+__pycache__/
+
+# local Python env for the web server
+.venv/
+
+# intermediate catalogs for build_guide.py (regenerated every build)
+catalog-movies.json
+catalog-shows.json
+.venv-atv/

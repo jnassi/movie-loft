@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__
+tests
+*.tsv
+*.toml
+# …except the instance settings the server reads (rooms for Tune in)
+!movieloft.toml
+*.applescript
+*.sh
+*.md
+.tmdb.key

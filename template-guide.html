@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie Loft · Guide</title>
+<style>
+/* Shared look: build_guide.py copies template.html's <style> block in here. */
+__BASE_CSS__
+  .viewtoggle{margin-left:auto}
+  .clock{font-family:var(--data);font-size:11px;color:var(--muted);letter-spacing:.06em}
+  main{padding-top:18px}
+  /* ---- On Now (list) ---- */
+  .now{display:flex;flex-direction:column;gap:2px}
+  .row{display:grid;grid-template-columns:64px 72px 1fr;gap:14px;align-items:center;
+    padding:10px 12px;background:var(--panel);cursor:pointer;border-left:2px solid transparent}
+  .row:hover{border-left-color:var(--amber)}
+  .ch{font-family:var(--data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);line-height:1.35}
+  .ch b{display:block;font-family:var(--display);font-weight:500;font-size:22px;color:var(--amber);
+    letter-spacing:.02em}
+  .thumb{width:72px;height:72px;background:var(--panel-2);border:1px solid var(--rule);
+    overflow:hidden;position:relative}
+  .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .prog{min-width:0}               /* let long titles shrink instead of widening the row */
+  .prog .t{font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prog .ep{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prog .ep{font-size:12.5px;color:var(--muted);margin-top:2px}
+  /* (not ".bar" — that's the shared header's class) */
+  .pbar{height:3px;background:var(--rule);margin:7px 0 5px;max-width:420px}
+  .pbar i{display:block;height:100%;background:var(--amber)}
+  .upnext .t{color:var(--muted)}
+  .when{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
+  .when .in{color:var(--teal)}
+  .when .left{color:#E07A5F}       /* same coral as tune-in errors: the "stop" end */
+  .next{font-family:var(--data);font-size:10.5px;color:var(--muted);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .offair{color:var(--muted);font-style:italic}
+  /* ---- Grid ---- */
+  .gridwrap{overflow-x:auto;border-top:1px solid var(--rule)}
+  .tg{position:relative;min-width:900px}
+  .tg .hours{display:flex;margin-left:150px;height:28px;align-items:end;font-family:var(--data);
+    font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--rule)}
+  .tg .hours span{flex:1;padding:0 0 6px 6px;border-left:1px solid var(--rule)}
+  .tg .line{display:flex;height:58px;border-bottom:1px solid var(--rule)}
+  .tg .lbl{width:150px;flex:none;padding:8px 10px;background:var(--panel)}
+  .tg .lbl b{color:var(--amber);font-family:var(--display);font-weight:500;font-size:16px;margin-right:6px}
+  .tg .lbl span{font-size:12px}
+  .tg .lane{position:relative;flex:1;overflow:hidden}
+  .tg .cell{position:absolute;top:4px;bottom:4px;background:var(--panel-2);border:1px solid var(--rule);
+    padding:5px 8px;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer;white-space:nowrap;
+    text-overflow:ellipsis}
+  .tg .cell small{display:block;color:var(--muted);font-family:var(--data);font-size:10px}
+  .tg .cell.on{background:#2B3247;border-color:var(--amber)}
+  .tg .cell.pattern{background:repeating-linear-gradient(90deg,#5a4a7a 0 12px,#3d6f6a 12px 24px,#7a6a3a 24px 36px);
+    opacity:.35;cursor:default}
+  .tg .nowline{position:absolute;top:28px;bottom:0;width:2px;background:var(--amber);z-index:3;pointer-events:none}
+  .hint{font-family:var(--data);font-size:11px;color:var(--muted);margin:12px 0}
+  /* ---- detail ---- */
+  .d-card{display:flex;gap:16px;padding:16px;background:var(--panel);border-top:2px solid var(--amber)}
+  .d-card .poster{width:38%;flex:none;aspect-ratio:2/3;background:var(--panel-2);position:relative;overflow:hidden}
+  .d-card .poster.wide{aspect-ratio:16/9}
+  .d-card .poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .d-card h2{font-family:var(--display);font-weight:500;font-size:22px;margin:0 0 6px}
+  .d-card .meta2{font-family:var(--data);font-size:11.5px;color:var(--muted);line-height:1.7}
+  .d-card .meta2 .in{color:var(--teal)}
+  .tune{margin-top:14px}
+  .tune .lbl2{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px}
+  .tune .opts{display:flex;gap:8px;flex-wrap:wrap}
+  .tune button{font-family:var(--data);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:9px 12px;cursor:pointer;background:var(--amber);color:#1A1508;border:0;font-weight:500}
+  .tune button.alt{background:none;color:var(--amber);border:1px solid var(--amber)}
+  .tune button:disabled{opacity:.45;cursor:default}
+  .tune .msg{font-family:var(--data);font-size:11.5px;margin-top:9px;color:var(--teal);min-height:1.2em}
+  .tune .msg.err{color:#E07A5F}
+  .tune .when{display:flex;margin-bottom:8px;border:1px solid var(--rule);max-width:320px}
+  .tune .when button{flex:1;white-space:nowrap;background:none;color:var(--muted);padding:7px 8px;font-size:10.5px}
+  .tune .when button[aria-pressed=true]{background:var(--panel-2);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+  @media (max-width:700px){
+    .row{grid-template-columns:50px 56px 1fr;gap:10px;padding:9px 10px}
+    .thumb{width:56px;height:56px}
+    .ch b{font-size:18px}
+  }
+</style>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Movie Loft">
+<meta name="theme-color" content="#171A24">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Movie Loft</h1>
+    <nav class="nav"><a href="index.html">Movies</a><a href="tv.html">TV Shows</a><a href="guide.html" aria-current="page">Guide</a></nav>
+    <div class="clock" id="clock"></div>
+    <div class="toggle viewtoggle" role="group" aria-label="View">
+      <button id="vNow" aria-pressed="true">On now</button>
+      <button id="vGrid" aria-pressed="false">Grid</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div id="view"></div>
+  <p class="hint" id="hint"></p>
+</main>
+<footer>
+  Every channel's lineup comes from the channel and the date, so it's the same
+  on every device all day; programs start on the hour or half hour. The
+  broadcast day starts at 6&nbsp;AM. Built __UPDATED__.<br>
+  This product uses the TMDB API but is not endorsed or certified by
+  <a href="https://www.themoviedb.org/" style="color:var(--muted)">TMDB</a>.
+</footer>
+<div id="detail" class="modal" hidden role="dialog" aria-modal="true">
+  <div class="modal-back" data-close></div>
+  <div class="modal-inner">
+    <div class="d-card" id="dCard"></div>
+    <div class="modal-actions"><button id="dClose">Close</button></div>
+  </div>
+</div>
+<script>
+const MOVIES = __MOVIES__;      // [raw, title, year, director, secs, appleId]
+const SHOWS = __SHOWS__;        // [show, [[season, episode, title, secs, episodeId], …], appleId, service ("" = owned)]
+const CHANNELS = __CHANNELS__;
+const REFS = __REFS__;
+const ROOMS = __ROOMS__;        // Tune in rooms from movieloft.toml: [[key, label], …]          // named per-show episode lists: [[show, [episode, …]], …]
+let TAGS = null;                // {movie:Set(raw), show:Set(name)} once the server answers
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const safe = s => encodeURIComponent(s.replace(/[/:]/g, '_')) + '.jpg';
+const fmt = t => new Date(t).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+const MIN = 60e3, SLOT = 30 * MIN, DAY = 24 * 60 * MIN, START_HOUR = 6;
+
+/* ------------------------------ seeded randomness ------------------------------ */
+function seeded(str){                         // xmur3 hash -> mulberry32 generator
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  let a = (() => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return (h ^= h >>> 16) >>> 0; })();
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const pickIdx = (r, n) => Math.floor(r() * n);
+function shuffled(r, arr){ const a = arr.slice(); for (let i = a.length - 1; i > 0; i--){ const j = pickIdx(r, i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ------------------------------ items ------------------------------ */
+// `key` is what can't be on two channels at once: a movie, or a whole show
+// (two different Ted Lasso episodes side by side is still the same show twice).
+const movieItem = i => ({key: 'm' + i, kind: 'movie', i, secs: MOVIES[i][4]});
+const epItem = (s, e) => ({key: 's' + s, kind: 'ep', s, e, secs: SHOWS[s][1][e][3]});
+// Show first, then episode: every show is equally likely, so a 300-episode
+// show doesn't crowd out a 13-episode one. (Marathon picks shows the same way.)
+const anyShow = (r, pool) => pool[pickIdx(r, pool.length)];
+
+// Each channel kind is a generator: given the day's random stream, it hands
+// out the next candidate item forever.
+function feed(ch, r){
+  switch (ch.kind){
+    case 'loop':
+      return () => Object.assign(movieItem(ch.pool[0]), {loop: true});
+    case 'movies': case 'comfort-movies': {
+      const pool = ch.kind === 'movies' ? ch.pool : MOVIES.map((m, i) => i).filter(i => TAGS && TAGS.movie.has(MOVIES[i][0]));
+      if (!pool.length) return null;
+      let deck = [];
+      return () => { if (!deck.length) deck = shuffled(r, pool); return movieItem(deck.pop()); };
+    }
+    case 'blocks': {
+      if (!ch.groups.length) return null;
+      let queue = [], label = '';
+      return () => {
+        if (!queue.length){
+          const g = pickIdx(r, ch.groups.length);
+          queue = ch.order === 'in-order' ? ch.groups[g].slice() : shuffled(r, ch.groups[g]);
+          label = ch.labels ? ch.labels[g] : '';
+        }
+        return Object.assign(movieItem(queue.shift()), label ? {note: label} : {});
+      };
+    }
+    case 'episodes': case 'comfort-shows': {
+      // Comfort TV airs any tagged show, even a short one: tagging it is a choice.
+      const pool = ch.kind === 'episodes' ? ch.pool : SHOWS.map((s, i) => i).filter(i => TAGS && TAGS.show.has(SHOWS[i][0]));
+      if (!pool.length) return null;
+      return () => { const s = anyShow(r, pool); return epItem(s, pickIdx(r, SHOWS[s][1].length)); };
+    }
+    case 'epref':
+      if (!(REFS[ch.refs] || []).length) return null;
+      return () => { const list = REFS[ch.refs]; const [s, eps] = list[pickIdx(r, list.length)];
+        return epItem(s, eps[pickIdx(r, eps.length)]); };
+    case 'mixed': {
+      // films and episodes in one channel; ch.share of picks are films
+      let deck = [];
+      if (!ch.movies.length && !ch.shows.length) return null;
+      return () => {
+        if (ch.movies.length && (!ch.shows.length || r() < ch.share)){
+          if (!deck.length) deck = shuffled(r, ch.movies);
+          return movieItem(deck.pop());
+        }
+        const s = anyShow(r, ch.shows); return epItem(s, pickIdx(r, SHOWS[s][1].length));
+      };
+    }
+    case 'marathon': {
+      if (!ch.pool.length) return null;
+      // The first episode of a run carries `run`: how long the whole run can
+      // take (each episode rounded up to the half hour). buildDay checks that
+      // span against the other marathons and calls next.reject() to drop the
+      // run if the show's already on.
+      let s = -1, e = 0, left = 0;
+      const next = () => {
+        let run = 0;
+        if (!left){
+          let pick = ch.pool[pickIdx(r, ch.pool.length)];
+          if (pick === s && ch.pool.length > 1) pick = ch.pool[(ch.pool.indexOf(pick) + 1) % ch.pool.length];
+          s = pick; const n = SHOWS[s][1].length;
+          left = Math.min(n, 4 + pickIdx(r, 5)); e = pickIdx(r, n - left + 1);
+          for (let k = e; k < e + left; k++) run += Math.ceil(SHOWS[s][1][k][3] * 1000 / SLOT) * SLOT;
+        }
+        left--; return Object.assign(epItem(s, e++), {note: 'Marathon'}, run ? {run} : {});
+      };
+      next.reject = () => { left = 0; };
+      return next;
+    }
+  }
+  return null;
+}
+
+/* ------------------------------ the schedule ------------------------------ */
+function dayStartFor(t){
+  const d = new Date(t), s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), START_HOUR);
+  if (d < s) s.setDate(s.getDate() - 1);
+  return s.getTime();
+}
+// The next broadcast day's start. Not start + 24h: on daylight-saving days the
+// broadcast day is 23 or 25 hours long.
+const nextDayStart = start => dayStartFor(start + 26 * 60 * MIN);
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+
+// Programs start on the hour or half hour. The last one of the day must end by
+// 6 AM; if the next pick runs over, look for one that fits, else sign off with
+// a test pattern. That keeps every broadcast day self-contained.
+// A movie — or a show, any episode — never airs on two channels at once.
+// Marathons are scheduled first and don't yield (skipping an episode would
+// break the run); everyone else works around them. A marathon does check its
+// whole run against earlier marathons before starting it. Comfort channels are
+// scheduled last, so tagging something only ever reshuffles the Comfort
+// channels. A loop channel is exempt both ways.
+function buildDay(start){
+  const end = nextDayStart(start), key = dayKey(start), airing = {};
+  const clash = (it, a, b) => (airing[it.key] || []).some(([x, y]) => a < y && x < b);
+  const rank = c => c.kind === 'marathon' ? 0 : c.kind.startsWith('comfort') ? 2 : 1;
+  const order = CHANNELS.map((c, i) => i).sort((a, b) => rank(CHANNELS[a]) - rank(CHANNELS[b]) || a - b);
+  const out = [];
+  for (const ci of order){
+    const ch = CHANNELS[ci], r = seeded(ch.name + '|' + key), next = feed(ch, r), progs = [];
+    let t = start;
+    while (next && t < end){
+      let it = null;
+      for (let tries = 0; tries < 60; tries++){
+        const c = next();
+        if (!c.secs) continue;
+        const stop = t + c.secs * 1000;
+        // A loop channel is exempt from the one-channel-at-a-time rule both
+        // ways: its movie can loop there while another channel also airs it.
+        if (stop > end || (!c.loop && ch.kind !== 'marathon' && clash(c, t, stop))) continue;
+        // A marathon doesn't yield mid-run, but two marathons mustn't pick the
+        // same show for overlapping runs: check the whole run up front.
+        if (c.run && clash(c, t, t + c.run)){ next.reject(); continue; }
+        it = c; break;
+      }
+      if (!it){ progs.push({pattern: true, start: t, end}); break; }
+      const stop = t + it.secs * 1000;
+      if (!it.loop) (airing[it.key] = airing[it.key] || []).push([t, stop]);
+      progs.push(Object.assign({start: t, end: stop}, it));
+      t = Math.min(end, Math.ceil(stop / SLOT) * SLOT);
+    }
+    out[ci] = progs;
+  }
+  return out;
+}
+
+const cache = {};
+function day(start){ return cache[start] || (cache[start] = buildDay(start)); }
+function lineupAt(t){
+  const start = dayStartFor(t), progs = day(start), nextDay = day(nextDayStart(start));
+  return CHANNELS.map((ch, ci) => {
+    const list = progs[ci].concat(nextDay[ci]);
+    const k = list.findIndex(p => p.start <= t && t < p.end);
+    return {ch, now: k >= 0 ? list[k] : null, next: list.find(p => p.start > t && !p.pattern) || null, list};
+  });
+}
+
+/* ------------------------------ describing a program ------------------------------ */
+const slug = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x';
+function describe(p){
+  if (p.kind === 'movie'){
+    const [raw, title, year, dir, , id] = MOVIES[p.i];
+    return {title, sub: [year, dir].filter(Boolean).join(' · '), art: 'art/' + safe(raw), wide: true,
+            link: id ? `https://tv.apple.com/us/movie/${slug(title)}/${id}` : ''};
+  }
+  // An episode with its own Apple TV ID tunes like a movie (exact episode,
+  // exact minute); without one, Tune in opens the show's page. The TV reports
+  // an episode's title as the show's name, so `title` stays the show.
+  const [show, eps, id, svc] = SHOWS[p.s], [s, e, t, , eid] = eps[p.e];
+  return {title: show, sub: `S${s} E${e} · ${t}` + (svc ? ` · ${svc}` : ''), art: 'art-tv/' + safe(show), wide: false,
+          exact: !!(eid && id),
+          link: eid && id ? `https://tv.apple.com/us/episode/${slug(t)}/umc.cmc.${eid}?showId=${id}`
+              : id ? `https://tv.apple.com/us/show/${slug(show)}/${id}` : ''};
+}
+const img = src => `<img alt="" loading="lazy" src="${src}" onerror="this.remove()">`;
+
+/* ------------------------------ views ------------------------------ */
+const view = document.getElementById('view'), hint = document.getElementById('hint');
+let mode = matchMedia('(min-width: 900px)').matches ? 'grid' : 'now';
+
+function renderNow(){
+  const t = Date.now();
+  view.innerHTML = '<div class="now">' + lineupAt(t).map(({ch, now, next, list}, ci) => {
+    const head = `<div class="ch"><b>${ch.num}</b>${esc(ch.name)}</div>`;
+    if (!now && next){
+      // between programs: the "coming up next" gap before the next half hour
+      const d = describe(next);
+      return `<div class="row upnext" data-ci="${ci}" data-start="${next.start}">${head}
+        <div class="thumb">${img(d.art)}</div>
+        <div class="prog"><div class="when">Coming up at ${fmt(next.start)}</div>
+          <div class="t">${esc(d.title)}</div>${next.kind === 'ep' ? `<div class="ep">${esc(d.sub)}</div>` : ''}</div></div>`;
+    }
+    if (!now || now.pattern){
+      const empty = !list.length;
+      const why = empty && ch.kind.startsWith('comfort')
+        ? (TAGS ? 'Nothing tagged yet — tap ♥ on a ' + (ch.kind === 'comfort-movies' ? 'movie' : 'show') : 'Needs the Movie Loft server')
+        : 'Off the air' + (next ? ' · back at ' + fmt(next.start) : '');
+      return `<div class="row">${head}<div class="thumb"></div><div class="prog offair">${why}</div></div>`;
+    }
+    const d = describe(now), pct = Math.min(100, (t - now.start) / (now.end - now.start) * 100);
+    const inMin = Math.floor((t - now.start) / MIN);
+    const nx = next ? `Next ${fmt(next.start)} · ${esc(describe(next).title)}` : '';
+    return `<div class="row" data-ci="${ci}" data-start="${now.start}">${head}
+      <div class="thumb">${img(d.art)}</div>
+      <div class="prog"><div class="t">${esc(d.title)}</div>
+        ${now.kind === 'ep' ? `<div class="ep">${esc(d.sub)}</div>` : ''}
+        <div class="pbar"><i style="width:${pct.toFixed(1)}%"></i></div>
+        <div class="when"><span class="in">${inMin} min in</span> · <span class="left">${Math.ceil((now.end - t) / MIN)} min left</span> · ends ${fmt(now.end)}</div>
+        <div class="next">${nx}</div></div></div>`;
+  }).join('') + '</div>';
+  hint.textContent = 'Tap a channel for details.';
+}
+
+function renderGrid(){
+  const t = Date.now(), w0 = Math.floor(t / SLOT) * SLOT, w1 = w0 + 3 * 60 * MIN;
+  const hours = []; for (let x = w0; x < w1; x += SLOT) hours.push(`<span>${fmt(x)}</span>`);
+  const lines = lineupAt(t).map(({ch, list}, ci) => {
+    const cells = list.filter(p => p.end > w0 && p.start < w1).map(p => {
+      const a = Math.max(p.start, w0), b = Math.min(p.end, w1);
+      const left = (a - w0) / (w1 - w0) * 100, width = (b - a) / (w1 - w0) * 100;
+      if (p.pattern) return `<div class="cell pattern" style="left:${left}%;width:${width}%" title="Off the air"></div>`;
+      const d = describe(p), on = p.start <= t && t < p.end;
+      return `<div class="cell${on ? ' on' : ''}" data-ci="${ci}" data-start="${p.start}" style="left:${left}%;width:calc(${width}% - 2px)"
+        title="${esc(d.title)}">${esc(d.title)}<small>${fmt(p.start)}${p.kind === 'ep' ? ' · ' + esc(d.sub) : ''}</small></div>`;
+    }).join('');
+    const empty = !list.length && ch.kind.startsWith('comfort')
+      ? `<div class="cell" style="left:0;width:100%;cursor:default;color:var(--muted)">${TAGS ? 'Tag some favorites with ♥ to fill this channel' : 'Needs the Movie Loft server'}</div>` : '';
+    return `<div class="line"><div class="lbl"><b>${ch.num}</b><span>${esc(ch.name)}</span></div><div class="lane">${cells}${empty}</div></div>`;
+  }).join('');
+  const nowPct = (t - w0) / (w1 - w0);
+  view.innerHTML = `<div class="gridwrap"><div class="tg"><div class="hours">${hours.join('')}</div>${lines}
+    <div class="nowline" style="left:calc(150px + (100% - 150px) * ${nowPct.toFixed(4)})"></div></div></div>`;
+  hint.textContent = 'Showing the next three hours. Tap a program for details.';
+}
+
+function render(){
+  document.getElementById('clock').textContent = fmt(Date.now());
+  (mode === 'grid' ? renderGrid : renderNow)();
+  document.getElementById('vNow').setAttribute('aria-pressed', mode === 'now');
+  document.getElementById('vGrid').setAttribute('aria-pressed', mode === 'grid');
+}
+document.getElementById('vNow').onclick = () => { mode = 'now'; render(); };
+document.getElementById('vGrid').onclick = () => { mode = 'grid'; render(); };
+
+/* ------------------------------ detail ------------------------------ */
+const modal = document.getElementById('detail'), card = document.getElementById('dCard');
+view.addEventListener('click', e => {
+  const el = e.target.closest('[data-ci]'); if (!el) return;
+  const ci = +el.dataset.ci, start = +el.dataset.start;
+  const {ch, list} = lineupAt(Date.now())[ci];
+  const p = list.find(x => x.start === start); if (!p) return;
+  const d = describe(p), t = Date.now(), live = p.start <= t && t < p.end;
+  const when = live
+    ? `<span class="in">On now · ${Math.floor((t - p.start) / MIN)} min in</span><br>Ends ${fmt(p.end)}`
+    : `${p.start > t ? 'Starts' : 'Aired'} ${fmt(p.start)} – ${fmt(p.end)}`;
+  const canTune = live && d.link;
+  // In progress (the default, every time) or start from 0:00. Only for what
+  // Tune in can position: movies, and episodes with their own Apple TV ID.
+  const startToggle = (p.kind === 'movie' || d.exact) ? `<div class="when" role="group" aria-label="Where to start">
+      <button data-when="live" aria-pressed="true">In progress</button><button data-when="start" aria-pressed="false">From the start</button></div>` : '';
+  const tunePanel = canTune ? `<div class="tune"><div class="lbl2">Tune in${p.kind === 'ep' && !d.exact ? ' · opens the show' : ''}</div>
+      ${startToggle}<div class="opts">${ROOMS.map(([k, label]) => `<button data-room="${esc(k)}">${esc(label)}</button>`).join('')}
+      <button class="alt" data-room="here">This device</button></div><div class="msg" id="tuneMsg"></div></div>`
+    : (live && !d.link ? `<div class="tune"><div class="msg">No Apple TV link for this title yet, so it can't be tuned.</div></div>` : '');
+  card.innerHTML = `<div class="poster${d.wide ? ' wide' : ''}">${img(d.art)}</div><div>
+    <div class="ch" style="margin-bottom:8px">Channel ${ch.num} · ${esc(ch.name)}${p.note ? ' · ' + esc(p.note) : ''}</div>
+    <h2>${esc(d.title)}</h2><div class="meta2">${esc(d.sub)}<br>${Math.round(p.secs / 60)} min<br>${when}</div>${tunePanel}</div>`;
+  current = {p, d};
+  modal.hidden = false;
+});
+
+/* ------------------------------ tune in ------------------------------ */
+// A room (movieloft.toml): queue it on the server; the helper on the Mac
+// drives that Apple TV and reports back, which this polls for. This device:
+// open the title in the Apple TV app right here — it can't be told to jump,
+// so say where to start.
+let current = null;
+const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+card.addEventListener('click', async e => {
+  const w = e.target.closest('[data-when]');
+  if (w){ card.querySelectorAll('[data-when]').forEach(x => x.setAttribute('aria-pressed', x === w)); return; }
+  const b = e.target.closest('[data-room]'); if (!b || !current) return;
+  const {p, d} = current, msg = document.getElementById('tuneMsg');
+  const fromStart = !!card.querySelector('[data-when="start"][aria-pressed="true"]');
+  const pos = p.kind !== 'movie' && !d.exact ? null : fromStart ? 0 : Math.max(0, Math.floor((Date.now() - p.start) / 1000));
+  const say = (text, err) => { msg.textContent = text; msg.className = 'msg' + (err ? ' err' : ''); };
+  if (b.dataset.room === 'here'){
+    say(pos == null ? 'Opening the show here.' : fromStart ? 'Opening it here — start from the beginning.'
+      : `Opening it here — start at ${mmss(pos)}.`);
+    // iPhone/iPad open tv.apple.com links in the Apple TV app; a Mac opens them
+    // in the browser. The Mac's Apple TV app answers to com.apple.tv:// instead
+    // (tested Oct 2026). iPadOS also reports "MacIntel", so tell
+    // them apart by touch support.
+    const isMac = /Mac/.test(navigator.platform) && navigator.maxTouchPoints < 2;
+    window.location.href = isMac ? d.link.replace(/^https:\/\//, 'com.apple.tv://') : d.link;
+    return;
+  }
+  const room = (ROOMS.find(([k]) => k === b.dataset.room) || [, 'the TV'])[1];
+  card.querySelectorAll('[data-room]').forEach(x => x.disabled = true);
+  say(`Tuning ${room}…`);
+  try {
+    const r = await fetch('/api/tune', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({room: b.dataset.room, link: d.link, title: d.title, position: pos, fromStart})});
+    if (!r.ok) throw new Error(r.status === 401 ? 'You’re signed out — reload the page.' : 'Movie Loft refused the request.');
+    const job = await r.json();
+    if (!job.agentOnline) say(`Tuning ${room}… (the Mac's helper hasn't checked in lately — is the Mac on?)`);
+    const until = Date.now() + 60e3;
+    while (Date.now() < until){
+      await new Promise(res => setTimeout(res, 1000));
+      const s = await (await fetch('/api/tune/' + job.id)).json();
+      if (s.status === 'done') return say(`Ready in ${room} — ${s.message || 'done'}.`);
+      if (s.status === 'failed') return say(s.message || 'That didn’t work.', true);
+      if (s.status === 'expired') return say('The Mac never picked it up. Is it on, with the helper running?', true);
+      if (s.status === 'working') say(`Tuning ${room}… the Mac is on it.`);
+    }
+    say('No word back from the Mac after a minute.', true);
+  } catch (err){
+    say(err.message || 'That didn’t work.', true);
+  } finally {
+    card.querySelectorAll('[data-room]').forEach(x => x.disabled = false);
+  }
+});
+const closeD = () => modal.hidden = true;
+document.getElementById('dClose').onclick = closeD;
+modal.querySelector('[data-close]').onclick = closeD;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeD(); });
+
+/* ------------------------------ go ------------------------------ */
+render();
+setInterval(render, 30e3);
+fetch('/api/tags').then(r => r.ok ? r.json() : Promise.reject()).then(j => {
+  const c = j.comfort || {};
+  TAGS = {movie: new Set(c.movie || []), show: new Set(c.show || [])};
+  for (const k in cache) delete cache[k];     // comfort pools changed: rebuild the days
+  render();
+}).catch(() => {});
+</script>
+</body>
+</html>

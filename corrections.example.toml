@@ -1,0 +1,97 @@
+# Movie Loft — hand-made fixes and rules for YOUR library. Copy this file to
+# corrections.toml and edit it. Every section is optional; with no
+# corrections.toml at all, everything still builds. `make check` and
+# `make check-tv` point out what's worth adding.
+#
+# Titles are matched exactly as they appear in movies.tsv / episodes.tsv (the
+# Apple TV app's own spelling, edition suffixes and all).
+
+# ---------------------------------------------------------------- movies
+
+# Release-year overrides. Normally unnecessary: TMDB supplies the theatrical
+# year (the store dates movies by their digital release). Use this only where
+# TMDB has no match or picks the wrong film.
+[years]
+# "Goodfellas (Remastered Feature)" = 1990
+
+# Directors the export leaves blank or gets wrong.
+[directors]
+# "Stand By Me" = "Rob Reiner"          # the library credits Stephen King
+
+# Series groupings, as RULES, not member lists, so a new purchase joins its
+# series on its own.
+#   match  case-insensitive regexes, tested against the cleaned title (no
+#          "(Unrated)" suffix, no trailing year)
+#   also   exact titles to pull in when the name doesn't say the series
+#   never  exact titles to keep out of a match that's too broad
+# The first series that matches wins; a series needs two films to show.
+[series."Alien"]
+match = ["^Aliens?\\b"]
+also = ["Prometheus"]
+
+[series."Back to the Future"]
+match = ["^Back to the Future"]
+
+[series."Mission: Impossible"]
+match = ["^Mission: Impossible"]
+
+[series."Star Wars"]
+match = ["^Star Wars", "Star Wars Story"]
+
+[series."The Lord of the Rings"]
+match = ["^The Lord of the Rings", "^The Hobbit"]
+
+# ---------------------------------------------------------------- TV
+
+# Wrong poster? Pin the TMDB show ID (from the show's themoviedb.org URL).
+# 0 keeps the episode frame from the Apple TV app.
+[tv_art]
+# "Star Trek: The Original Series (Remastered)" = 253
+
+# Shows you stream but don't own. They join the TV Shows page with a service
+# badge and mix into the guide. Episodes and posters come from TMDB.
+[streaming]
+service = "Apple TV+"
+shows = []                              # e.g. ["Ted Lasso", "Severance"]
+
+# ---------------------------------------------------------------- the guide
+
+# Shows with fewer episodes than this never air (they stay on the TV Shows
+# page). keep_shows lets a short one back in, like a miniseries.
+[guide]
+min_episodes = 6
+keep_shows = []
+# Run extra copies of the busy formats, like HBO, HBO2, HBO3 (default 1):
+# Movie Roulette, Marathon, The Half Hour, The Hour, Channel Surf.
+copies = 1
+# Or per format; 0 turns one off:
+# [guide.channel_copies]
+# "Marathon" = 3
+# "Channel Surf" = 0
+
+# Channels that mix films and episodes. A channel only appears if it's
+# defined here.
+#   series       movie series (names from [series] above)
+#   match        regexes on cleaned movie titles, for films outside a series
+#   never        exact movie titles to keep out
+#   shows        exact show names; show_match = regexes on show names
+#   movie_share  how often a pick is a film rather than an episode (0–1)
+[channel."Super Heroes"]
+match = ["^Ant-Man", "^The Batman$", "^Black Panther", "^Captain America",
+         "^Doctor Strange", "^Guardians of the Galaxy", "^Iron Man", "^Spider-Man",
+         "^Superman", "^Thor", "^Wonder Woman", "^X-Men", "^The Avengers", "^Avengers"]
+show_match = ["^Superman", "^Supergirl", "^Arrow$", "^The Flash"]
+movie_share = 0.85
+
+[channel."Starfleet"]
+match = ["^Star Trek"]
+show_match = ["^Star Trek"]
+movie_share = 0.15
+
+# ---------------------------------------------------------------- Tune in
+
+# Apple TV links for titles the automatic lookup (Wikidata) missed. `make`
+# lists the misses. Find a title's link with a web search limited to
+# tv.apple.com; the Apple TV app has no "Copy Link."
+[apple_tv]
+# "Better Off Dead" = "https://tv.apple.com/us/movie/better-off-dead/umc.cmc.7h8ic0w12ssonu04cx6pi0cyk"

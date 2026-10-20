@@ -1,0 +1,25 @@
+24 titles · 3 series · 3 year fixes · 1 without a director
+
+Gone (1):
+  - Some Old Movie
+
+Series rules that match nothing (typo?):
+  ? Jurassic Park
+
+Titles matching more than one series (first wins):
+  ! Back to the Future — Back to the Future, Time Travel
+  ! Back to the Future Part II — Back to the Future, Time Travel
+
+Collision — same title/edition/year, different raw titles (both kept):
+  ! Crash 2004: Crash, Crash (2004)
+  → usually two different films where one's year is wrong: pin the mis-dated raw title with a [years] entry so they no longer share a year. If they're genuinely one film, leave both (different raw titles never merge by design).
+
+TMDB reproduces 1/2 of the [years] corrections on its own.
+
+Worth an eyeball (store year may be a reissue date, not the original):
+  ? Total Recall (Newly Remastered) 2019 — reissue wording
+
+Ungrouped films that look like a series (add a [series] rule):
+  + Bad Boys, Bad Boys II → match = ["^Bad Boys"]
+
+--check: nothing written.

@@ -1,0 +1,7 @@
+{
+ "Alien": {"theatrical": 1979, "digital": 1979, "tmdbId": 348, "matched": "Alien"},
+ "Blade Runner": {"theatrical": 1982, "digital": 1982, "tmdbId": 78, "matched": "Blade Runner"},
+ "Ghostbusters (2016)": {"theatrical": 1984, "digital": 1996, "tmdbId": 620, "matched": "Ghostbusters (deliberate wrong match to the 1984 original)"},
+ "Goodfellas (Remastered Feature)": {"theatrical": 1990, "digital": 1990, "tmdbId": 769, "matched": "GoodFellas"},
+ "Total Recall (Newly Remastered)": {"theatrical": 2025, "digital": 2025, "tmdbId": 0, "matched": "Total Recall (deliberate wrong match, later than store)"}
+}
