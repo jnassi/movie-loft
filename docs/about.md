@@ -201,7 +201,7 @@ See something in the guide you want to watch? Tap it, then tap a room.
 - **This device** opens it in the Apple TV app on your phone, iPad, or Mac
   instead.
 
-![Tuning in to an episode of The Following: In progress or From the start, then pick a room](images/tune-in.jpg)
+![Tuning in to an episode of House on Comfort TV: In progress or From the start, then pick a room](images/tune-in.jpg)
 
 ### Apple TV+ shows, mixed in
 
