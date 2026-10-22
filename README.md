@@ -17,7 +17,9 @@ them into:
 - **Comfort picks:** ♥ the titles you'd watch any night; filter to them, and
   they get their own channels.
 
-There's a longer product description in [`docs/about.md`](docs/about.md).
+There's a longer product description, with screenshots, at
+**[jnassi.com/movie-loft](https://www.jnassi.com/movie-loft/)** (also in
+[`docs/about.md`](docs/about.md)).
 
 > **Built with AI.** Movie Loft was built with
 > [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool,
