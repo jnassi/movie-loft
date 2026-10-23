@@ -157,8 +157,10 @@ async def tune(name, link, target=None, title="", log=print):
             # (hulu://, aiv://, pplus://; web links like HBO Max's don't ask),
             # then a profile picker when the app starts cold. So press Select
             # until it plays. The first press waits long enough for a warm app
-            # to start on its own (Disney+ ~6s). Capped at ~26s.
-            waits, presses = [8, 6, 6, 6], 0
+            # to start on its own (Disney+ ~6s); the last wait is long and
+            # press-free, for a slow load after the picker (Prime Video spins
+            # a while, cold).
+            waits, presses = [8, 6, 8, 25], 0
             while not await wait_playing(atv, waits[presses]):
                 presses += 1
                 if presses == len(waits):
