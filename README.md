@@ -77,6 +77,7 @@ There's a longer product description, with screenshots, at
 | Posters, theatrical years | A free **TMDB** API key ([themoviedb.org](https://www.themoviedb.org/) → Settings → API) |
 | Private hosting | **Railway** (or any Docker host + Postgres) and a **Google Cloud** OAuth client |
 | Tune in | One or more **Apple TVs** on the same network as an always-on Mac; **Python 3.12** for [pyatv](https://pyatv.dev), which [uv](https://docs.astral.sh/uv/) installs for you (`brew install uv`) |
+| Streamed shows (optional) | A **TMDB** key (above). For Tune in: each service's **app, installed and signed in** on your Apple TVs. Supported: Apple TV+, HBO Max, Hulu, Disney+, Prime Video, Paramount+, Peacock; not Netflix |
 | Tests | **Node** (`brew install node`); the Tune in queue test also needs the server's packages (see Level 3, *Local server*) |
 
 ## Setup
