@@ -157,8 +157,7 @@ async def tune(name, link, target=None, title="", log=print):
             # (hulu://, aiv://, pplus://; web links like HBO Max's don't ask),
             # then a profile picker when the app starts cold. So press Select
             # until it plays. The first press waits long enough for a warm app
-            # to start on its own (Disney+ ~6s). Capped so the whole tune stays
-            # inside tune_agent.py's 45s.
+            # to start on its own (Disney+ ~6s). Capped at ~26s.
             waits, presses = [8, 6, 6, 6], 0
             while not await wait_playing(atv, waits[presses]):
                 presses += 1
@@ -203,9 +202,15 @@ async def tune(name, link, target=None, title="", log=print):
         # So: let it PLAY through the jump, pause
         # only once it has loaded (~3s), then read the paused position — and
         # jump again if it isn't there. Lands ~3s past the broadcast point.
-        SETTLE = 3.0
+        # Streamed shows can open with ads (Prime Video without ad-free,
+        # tested Oct 2026), and an ad ignores jumps. So for them, keep trying
+        # until the jump takes or AD_WAIT runs out — and after each miss, press
+        # play, so the ad keeps running instead of sitting paused.
+        SETTLE, AD_WAIT = 3.0, 90
         await asyncio.sleep(1.0)                  # a jump at the very first instant gets dropped
-        for attempt in range(4):
+        give_up, attempt = time.monotonic() + AD_WAIT, 0
+        while True:
+            attempt += 1
             secs = max(0, int(target()))
             await atv.remote_control.set_position(secs)
             await asyncio.sleep(0.5)
@@ -220,12 +225,16 @@ async def tune(name, link, target=None, title="", log=print):
             st, pos, now_title = await state(atv)
             if pos is not None and secs - 5 <= pos <= secs + SETTLE + 15:
                 break
-            mark(f"jump to {hms(secs)} didn't take (paused at {pos}s); retrying")
-        else:
-            if streamed:                          # this app won't jump: better playing than nothing
-                await atv.remote_control.play()
-                return f"playing — this app wouldn't jump to {hms(secs)}"
-            raise TuneError(f"The TV wouldn't jump to {hms(secs)} — it's paused near the start")
+            if not streamed:
+                if attempt == 4:
+                    raise TuneError(f"The TV wouldn't jump to {hms(secs)} — it's paused near the start")
+                mark(f"jump to {hms(secs)} didn't take (paused at {pos}s); retrying")
+                continue
+            await atv.remote_control.play()       # most likely an ad: let it run
+            if time.monotonic() > give_up:        # better playing than nothing
+                return f"playing — couldn't jump to {hms(secs)} (ads?)"
+            mark(f"jump to {hms(secs)} didn't take (at {pos}s) — an ad? letting it play")
+            await asyncio.sleep(5)
         mark(f"jumped to {hms(secs)}, paused (TV reports {pos}s)")
         if streamed:
             mark(f"the app reports “{now_title}”")   # apps name things their own way: note it, don't judge

@@ -61,7 +61,7 @@ async def handle(session, job):
         # since. Asked at the moment of the jump, so tuning time is covered.
         target = lambda: job["position"] + (time.time() - job["requested_at"])
     try:
-        result = await asyncio.wait_for(tune(name, job["link"], target, job["title"], log=log), timeout=45)
+        result = await asyncio.wait_for(tune(name, job["link"], target, job["title"], log=log), timeout=150)
         status, msg = "done", result
     except TuneError as e:
         status, msg = "failed", str(e)
