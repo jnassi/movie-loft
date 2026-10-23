@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Tune an Apple TV to a title at a given minute — one connection, start to finish.
 
-    .venv-atv/bin/python tunein.py "<Apple TV name>" <tv.apple.com link> <seconds> [title]
+    .venv-atv/bin/python tunein.py "<Apple TV name>" <link> <seconds> [title]
+
+<link> is a tv.apple.com link, or a streaming service's play link
+(hulu://…, https://play.hbomax.com/…; see app/services.py).
 
 Used by tune_agent.py (the helper behind the guide's Tune in button) and
 runnable on its own for testing. Needs pyatv (in .venv-atv — Python 3.12;
@@ -15,6 +18,11 @@ to actually start, then pause → jump, and leave it paused (the viewer presses 
 when ready). A partly watched title resumes
 where it was left, not at 0:00 — the jump handles both. Each separate
 connection costs seconds, which is why it's all one connection.
+
+A service's play link starts the episode in that service's app by itself, so
+there's no Select — unless it stops at the episode's page, then one Select.
+The jump works the same way when the app reports its playback to the Apple
+TV (most do).
 """
 import asyncio, json, re, sys, time
 from pathlib import Path
@@ -122,18 +130,29 @@ async def tune(name, link, target=None, title="", log=print):
         except Exception:
             pass
         await atv.apps.launch_app(link)
-        mark("opened the page")
+        streamed = not link.startswith("https://tv.apple.com/")
+        mark("opened the " + ("service's app" if streamed else "page"))
         if target is None:
             return "opened"                       # a show page: the viewer picks the episode
         await wait_stopped(atv)
-        await asyncio.sleep(2.5)                  # let the page load
-        await atv.remote_control.select()
-        mark("select")
-        if not await wait_playing(atv, 3):
-            await atv.remote_control.select()     # the extras menu: now PLAY
-            mark("select (PLAY in the menu)")
-            if not await wait_playing(atv, 12):
-                raise TuneError("The movie never started playing")
+        if streamed:
+            # The app starts the episode on its own; app launch + sign-in
+            # check + buffering can take a while.
+            if not await wait_playing(atv, 20):
+                await atv.remote_control.select()  # stopped at the episode's page: Play
+                mark("select (the app stopped at the episode's page)")
+                if not await wait_playing(atv, 12):
+                    raise TuneError("The episode never started playing — is the app signed in?")
+        else:
+            await asyncio.sleep(2.5)              # let the page load
+            await atv.remote_control.select()
+            mark("select")
+            if not await wait_playing(atv, 3):
+                await atv.remote_control.select()     # the extras menu: now PLAY
+                mark("select (PLAY in the menu)")
+                if not await wait_playing(atv, 12):
+                    raise TuneError("The movie never started playing")
+        mark("playing")
         # Land on the frame and STAY PAUSED — deliberate (Oct 2026):
         # the viewer presses Play when settled. (A play() right after the jump was
         # being dropped anyway while the seek settled.)
@@ -167,9 +186,14 @@ async def tune(name, link, target=None, title="", log=print):
                 break
             mark(f"jump to {hms(secs)} didn't take (paused at {pos}s); retrying")
         else:
+            if streamed:                          # this app won't jump: better playing than nothing
+                await atv.remote_control.play()
+                return f"playing — this app wouldn't jump to {hms(secs)}"
             raise TuneError(f"The TV wouldn't jump to {hms(secs)} — it's paused near the start")
         mark(f"jumped to {hms(secs)}, paused (TV reports {pos}s)")
-        if title and now_title and not norm(now_title).startswith(norm(title)[:12]):
+        if streamed:
+            mark(f"the app reports “{now_title}”")   # apps name things their own way: note it, don't judge
+        elif title and now_title and not norm(now_title).startswith(norm(title)[:12]):
             raise TuneError(f"The TV has “{now_title}”, not “{title}” — its Apple TV link may be wrong")
         return f"paused at {hms(secs)} — press play"
     finally:

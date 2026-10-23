@@ -30,7 +30,7 @@ echo "→ Reading TV episodes from the Apple TV app…"
 if ! osascript export-tv.applescript "$PWD"; then
     echo "⚠ Couldn't read TV episodes — keeping the previous episodes.tsv." >&2
 fi
-# Streamed shows (Apple TV+) from TMDB — new episodes appear on their own.
+# Streamed shows (Apple TV+, HBO Max, Hulu…) from TMDB — new episodes appear on their own.
 python3 fetch_streaming.py 2>/dev/null | tail -2 || echo "⚠ Couldn't refresh streamed shows — keeping what's there." >&2
 # Posters for any show not looked up yet (best-effort: no TMDB key or no
 # network just means the episode frame stays for now).
@@ -68,7 +68,7 @@ echo
 # refresh (theatrical.json). index.html itself can't be the signal: it carries
 # a per-build timestamp, so it churns every run. On a true no-op, drop that
 # churn (index.html + library-state.json) and stop without committing.
-if [ -z "$(git status --porcelain -- movies.tsv corrections.toml movieloft.toml theatrical.json art episodes.tsv art-tv tv-art.json apple-ids.json streaming.json episode-ids.json)" ]; then
+if [ -z "$(git status --porcelain -- movies.tsv corrections.toml movieloft.toml theatrical.json art episodes.tsv art-tv tv-art.json apple-ids.json streaming.json episode-ids.json stream-links.json)" ]; then
     git checkout -- library-state.json index.html tv.html guide.html 2>/dev/null || true
     echo "✓ Nothing new since last time. Done."
     exit 0
@@ -99,7 +99,7 @@ echo "→ Saving…"
 # optional on a new instance.
 files=()
 for f in movies.tsv corrections.toml movieloft.toml theatrical.json library-state.json index.html art \
-         episodes.tsv tv.html guide.html art-tv tv-art.json apple-ids.json streaming.json episode-ids.json; do
+         episodes.tsv tv.html guide.html art-tv tv-art.json apple-ids.json streaming.json episode-ids.json stream-links.json; do
     [ -e "$f" ] && files+=("$f")
 done
 git add "${files[@]}"

@@ -212,14 +212,28 @@ compact_movies = [[m["raw"], m["title"], m["year"] or 0, m["director"], m["secs"
 # minus the "umc.cmc." prefix to keep the page small; "" = no ID, so Tune in
 # opens the show's page instead.
 eids = json.loads((ROOT / "episode-ids.json").read_text(encoding="utf-8")) if (ROOT / "episode-ids.json").exists() else {}
-compact_shows = [[s["show"],
-                  [[*ep[:4], eids.get(s["show"], {}).get(f"{ep[0]}x{ep[1]}", "").removeprefix("umc.cmc.")]
-                   for ep in s["eps"]],
-                  ash.get(s["show"], ""), s.get("svc", "")] for s in shows]
+# Streamed shows on a service with its own app (fetch_episode_ids.py →
+# stream-links.json) add a 6th field: the episode's play link on that service,
+# which Tune in opens instead of tv.apple.com. Its service is the one Apple's
+# catalog says plays it, which beats fetch_streaming.py's guess.
+plinks = json.loads((ROOT / "stream-links.json").read_text(encoding="utf-8")) if (ROOT / "stream-links.json").exists() else {}
+
+
+def ep_row(show, ep):
+    k = f"{ep[0]}x{ep[1]}"
+    row = [*ep[:4], eids.get(show, {}).get(k, "").removeprefix("umc.cmc.")]
+    play = plinks.get(show, {}).get("eps", {}).get(k)
+    return row + [play] if play else row
+
+
+compact_shows = [[s["show"], [ep_row(s["show"], ep) for ep in s["eps"]],
+                  ash.get(s["show"], ""), plinks.get(s["show"], {}).get("service") or s.get("svc", "")]
+                 for s in shows]
 print(f"Tune in: {sum(1 for m in compact_movies if m[5])}/{len(compact_movies)} movies, "
       f"{sum(1 for s in compact_shows if s[2])}/{len(compact_shows)} shows, "
       f"{sum(1 for s in compact_shows for e in s[1] if e[4])}/{sum(len(s[1]) for s in compact_shows)} episodes "
-      f"have Apple TV IDs")
+      f"have Apple TV IDs" + (f", {sum(1 for s in compact_shows for e in s[1] if len(e) > 5)} "
+                              f"streamed episodes have play links" if plinks else ""))
 page = ((ROOT / "template-guide.html").read_text(encoding="utf-8")
         .replace("__BASE_CSS__", base_css)
         .replace("__MOVIES__", json.dumps(compact_movies, ensure_ascii=False, separators=(",", ":")))
