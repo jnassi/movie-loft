@@ -237,23 +237,13 @@ async def tune(name, link, target=None, title="", log=print):
             if time.monotonic() > give_up:        # better playing than nothing
                 return f"playing — couldn't jump to {hms(secs)} (ads?)"
             mark(f"jump to {hms(secs)} didn't take (at {pos}s) — an ad? letting it play")
-            # Watch without touching it (pausing to check makes the ad
-            # stutter). Tell the ad from the episode by its length: an ad runs
-            # seconds, an episode most of an hour. (The position is no help:
-            # Prime Video reports ~1s all through its ads.) If the app reports
-            # no length, a real try every 15s.
-            watch, told = time.monotonic() + 15, None
-            while time.monotonic() < give_up:
-                await asyncio.sleep(1.0)
-                p = await atv.metadata.playing()
-                length = p.total_time
-                if length != told:
-                    mark(f"playing something {length}s long" if length else "the app reports no length")
-                    told = length
-                if length and length >= 300 and p.device_state == DeviceState.Playing:
-                    break                         # the episode
-                if not length and time.monotonic() > watch:
-                    break
+            # Then leave it alone for a while: each check pauses, and a pause
+            # makes the ad stutter. Nothing reported tells the ad from the
+            # episode (tested on Prime Video, Oct 2026: the position reads ~1s
+            # and the length is the episode's all through the ads), so check
+            # every 15s — a few stutters, and the jump lands within ~15s of
+            # the ad ending.
+            await asyncio.sleep(min(15, max(0, give_up - time.monotonic())))
         mark(f"jumped to {hms(secs)}, paused (TV reports {pos}s)")
         if streamed:
             mark(f"the app reports “{now_title}”")   # apps name things their own way: note it, don't judge

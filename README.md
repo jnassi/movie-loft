@@ -14,6 +14,9 @@ them into:
 - **Tune in:** tap a program, pick a room, and that Apple TV opens the movie
   or exact episode at the minute the "broadcast" has reached, then waits
   paused for you to press Play.
+- **Streamed shows, too:** list favorites you stream but don't own (Apple TV+,
+  HBO Max, Hulu, Disney+, Prime Video, Paramount+, Peacock), and they air
+  alongside your library; Tune in opens the episode in that service's app.
 - **Comfort picks:** ♥ the titles you'd watch any night; filter to them, and
   they get their own channels.
 
@@ -281,7 +284,15 @@ The helper runs on an always-on Mac on the same network as your Apple TVs.
    After changing `movieloft.toml` or updating the code, run
    `make helper-restart`.
 
-6. **Allow Local Network access.** Under launchd, the helper's Python needs
+6. **Streamed shows** (optional): each service's app has to be installed and
+   signed in on every Apple TV you'll tune. Tune in presses Select through
+   tvOS's "Open in …?" prompt and the app's profile picker (it takes the
+   highlighted profile). A tune-in on a service's ad tier waits out the ads
+   before it can jump (Prime Video's ads take a minute or so), with a brief
+   pause every 15 seconds while it checks. Test one with a link from
+   `stream-links.json`, the same way as the movie above.
+
+7. **Allow Local Network access.** Under launchd, the helper's Python needs
    System Settings → Privacy & Security → Local Network turned on. Without
    it, the helper can't find any Apple TV, even though the same command works
    from Terminal.
@@ -297,7 +308,7 @@ use `sudo fdesetup authrestart`, which comes back up logged in.
 | **Series groupings, director fixes, year overrides** | `corrections.toml`: `[series]` rules (regex `match`, `also`, `never`), `[directors]`, `[years]` |
 | **Wrong TV poster** | `[tv_art]` in `corrections.toml` (a TMDB show ID; 0 keeps the episode frame) |
 | **Missing Apple TV link** | `[apple_tv]` in `corrections.toml`: paste the tv.apple.com link. A web search limited to tv.apple.com finds it; the Apple TV app has no Copy Link |
-| **Streamed shows you don't own** | `[streaming] shows` in `corrections.toml` |
+| **Streamed shows you don't own** | `[streaming]` in `corrections.toml`: your `services`, in the order you'd rather watch on, and the `shows`. Which service plays each show comes from Apple's catalog; `[streaming.on]` overrides it. Netflix isn't supported (it isn't in Apple's catalog) |
 | **Which shows air** | `[guide] min_episodes` and `keep_shows` in `corrections.toml` |
 | **Channels** | Mixed film-and-show channels: add a `[channel."Name"]` to `corrections.toml` (any name; see the examples). Other channel types: one `add(...)` per channel in `build_guide.py`, which also keeps Star Trek off The Hour |
 | **Rooms, server address, a loop channel** | `movieloft.toml` (copy `movieloft.example.toml`): `url`, one `[[rooms]]` per Apple TV, and an optional `[loop]` channel that plays one movie all day |
@@ -331,8 +342,10 @@ template*.html                              page templates (shared CSS in templa
 lookup_years.py                             TMDB theatrical years → theatrical.json
 fetch_tv_art.py                             TMDB show posters → art-tv/, tv-art.json
 fetch_streaming.py                          streamed shows from TMDB → streaming.json
+app/services.py                             the streaming services Tune in can play
 fetch_apple_ids.py                          Apple TV movie/show IDs (Wikidata) → apple-ids.json
-fetch_episode_ids.py                        Apple TV episode IDs (tv.apple.com) → episode-ids.json
+fetch_episode_ids.py                        Apple TV episode IDs and streamed shows' play links
+                                            (tv.apple.com) → episode-ids.json, stream-links.json
 corrections.example.toml → corrections.toml  fixes and channel rules for your library
 movieloft.example.toml → movieloft.toml      your instance: server url, rooms, loop channel
 app/instance.py                             reads movieloft.toml
@@ -370,8 +383,12 @@ make test
   *This product uses the TMDB API but is not endorsed or certified by TMDB.*
   The attribution in the page footers is required by TMDB's terms.
 - **Wikidata** for Apple TV movie and show IDs, matched on TMDB IDs.
-- **tv.apple.com**'s own episode list for episode IDs. It's undocumented and
-  could change; when it breaks, episodes fall back to opening the show's page.
+- **tv.apple.com**'s own episode list for episode IDs, and Apple's catalog
+  (the data behind the Apple TV app's "Watch on…") for which service plays a
+  streamed show and its play links. Both are undocumented and could change;
+  when they break, episodes fall back to opening the show's page.
+- **TMDB's watch providers** (from JustWatch) to tell a service apart from a
+  channel sold through another (Paramount+ bought through Prime Video).
 - **pyatv** to control Apple TVs. Apple TV seeking is finicky; `tunein.py`
   documents the sequence that works and why.
 - US storefront throughout.

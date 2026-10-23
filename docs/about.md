@@ -203,10 +203,15 @@ See something in the guide you want to watch? Tap it, then tap a room.
 
 ![Tuning in to an episode of House on Comfort TV: In progress or From the start, then pick a room](images/tune-in.jpg)
 
-### Apple TV+ shows, mixed in
+### Streamed shows, mixed in
 
-Shows you stream but don't own, like *Ted Lasso*, *Severance*, and *Slow Horses*,
-can join the guide alongside your library, marked as Apple TV+.
+Shows you stream but don't own, like *Ted Lasso*, *The Pitt*, or *The Bear*,
+can join the guide alongside your library, marked with their service. Tell
+Movie Loft which services you have (Apple TV+, HBO Max, Hulu, Disney+, Prime
+Video, Paramount+, Peacock) and which shows you want; it works out where each
+one streams. Tune in opens the episode in that service's app and jumps to the
+minute, the same as for anything you own. (On an ad tier, it waits out the
+ads first.) Netflix isn't supported: it doesn't share its catalog with Apple's.
 
 ### One command to stay current
 

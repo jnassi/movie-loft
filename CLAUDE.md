@@ -229,11 +229,39 @@ the library's tags: "(Reboot)" = newest, "(Original)" = oldest, "(2001)" =
 closest year. Pin under `[tv_art]` (0 = keep the frame). The iTunes Search
 API was tried first and dropped; it's missing whole shows.
 
-**Streamed shows:** Apple TV+ shows the user streams but doesn't own aren't
-library items, so `[streaming] shows` lists them; `fetch_streaming.py` pulls
-aired episodes and posters from TMDB into `streaming.json` (preferring the
-Apple TV network when names clash), and `build_tv.py` merges them in with
-`svc: "Apple TV+"`. An owned copy wins. They mix into every TV channel.
+**Streamed shows:** shows the user streams but doesn't own aren't library
+items, so `[streaming]` lists them, with the user's `services` in preference
+order (`service = "Apple TV+"` alone is the older form). `app/services.py` is
+the one list of supported services: names, aliases, Apple catalog name, TMDB
+provider IDs, and play-link prefixes (the server accepts only those).
+`fetch_streaming.py` pulls aired episodes and posters from TMDB into
+`streaming.json`, guessing the service from TMDB's watch providers and noting
+every supported service TMDB lists (`listed`). `fetch_apple_ids.py` finds
+shows Wikidata lacks via Apple's catalog search (`pfm=appletv`; `pfm=web`
+sees only Apple TV+). `fetch_episode_ids.py` reads each streamed show's
+episodes with `pfm=appletv`, which carry per-service `punchoutUrls.play`, and
+**decides the service** (`choose()`): services both TMDB and Apple list come
+first, because Apple files add-on channels under the store that sells them
+(Paramount+ via Prime shows as Prime Video); Apple TV+ episodes have no
+outside link at all. Writes `stream-links.json`; `build_tv.py` and
+`build_guide.py` take the service from there. An owned copy wins. They mix
+into every TV channel. Netflix isn't in Apple's catalog: unsupported.
+
+**Tune in on a service** (tested on a TV, Oct 23 2026): `tunein.py` opens the
+play link (pyatv sends any URL or scheme). Web links (HBO Max, Disney+,
+Peacock) open directly; app schemes (`hulu://`, `aiv://`, `pplus://`) get
+tvOS's "Open in …?" prompt; a cold app shows a profile picker. Select on the
+highlight answers both, so: two presses, a long hands-off wait (Prime spins
+a while; a press there lands on the spinner), one last press. A cold Disney+
+or Paramount+ can play a promo first; if the app reports neither the show
+nor the episode (the guide sends both, one per line), the link is sent
+again. Prime's links carry `time=auto` (resume), which rolled a watched
+episode into the next; `services.play_link()` makes it `time=0`. Ads ignore
+jumps, and nothing reported distinguishes an ad (Prime: position ~1s, length
+= the episode's), so a missed jump presses play and re-checks every 15s, up
+to 90s; pausing more often made the ad stutter. Helper limit 150s; the phone
+waits as long. Apps report titles their own way, so streamed tune-ins don't
+fail on a title mismatch.
 
 ## Channel guide (guide.html)
 
