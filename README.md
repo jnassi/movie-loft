@@ -77,7 +77,7 @@ There's a longer product description, with screenshots, at
 | Posters, theatrical years | A free **TMDB** API key ([themoviedb.org](https://www.themoviedb.org/) → Settings → API) |
 | Private hosting | **Railway** (or any Docker host + Postgres) and a **Google Cloud** OAuth client |
 | Tune in | One or more **Apple TVs** on the same network as an always-on Mac; **Python 3.12** for [pyatv](https://pyatv.dev), which [uv](https://docs.astral.sh/uv/) installs for you (`brew install uv`) |
-| Streamed shows (optional) | A **TMDB** key (above). For Tune in: each service's **app, installed and signed in** on your Apple TVs. Supported: Apple TV+, HBO Max, Hulu, Disney+, Prime Video, Paramount+, Peacock; not Netflix |
+| Streamed shows (optional) | A **TMDB** key (above). For Tune in: each service's **app, installed and signed in** on your Apple TVs. Supported: Apple TV+, HBO Max, Hulu, Disney+, Prime Video, Paramount+, Peacock; not Netflix. Ad-free plans work best; ad tiers are a bit wonky (Level 4, step 6) |
 | Tests | **Node** (`brew install node`); the Tune in queue test also needs the server's packages (see Level 3, *Local server*) |
 
 ## Setup
@@ -288,9 +288,14 @@ The helper runs on an always-on Mac on the same network as your Apple TVs.
 6. **Streamed shows** (optional): each service's app has to be installed and
    signed in on every Apple TV you'll tune. Tune in presses Select through
    tvOS's "Open in …?" prompt and the app's profile picker (it takes the
-   highlighted profile). A tune-in on a service's ad tier waits out the ads
-   before it can jump (Prime Video's ads take a minute or so), with a brief
-   pause every 15 seconds while it checks. Test one with a link from
+   highlighted profile).
+
+   **Movie Loft isn't optimized for ad-supported tiers.** It was built and
+   tested on ad-free plans. On an ad tier it works, but it's a little
+   wonky: an ad can't be skipped or jumped past, so Tune in waits it out,
+   checking every 15 seconds. Each check briefly pauses the ad, so it
+   stutters, and the jump lands up to 15 seconds after the ads end (on Prime
+   Video, a minute or more after you tap). Test one with a link from
    `stream-links.json`, the same way as the movie above.
 
 7. **Allow Local Network access.** Under launchd, the helper's Python needs

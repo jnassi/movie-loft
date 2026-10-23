@@ -210,8 +210,10 @@ can join the guide alongside your library, marked with their service. Tell
 Movie Loft which services you have (Apple TV+, HBO Max, Hulu, Disney+, Prime
 Video, Paramount+, Peacock) and which shows you want; it works out where each
 one streams. Tune in opens the episode in that service's app and jumps to the
-minute, the same as for anything you own. (On an ad tier, it waits out the
-ads first.) Netflix isn't supported: it doesn't share its catalog with Apple's.
+minute, the same as for anything you own. It's built for ad-free plans: on
+an ad tier it still gets there, but it waits out the ads first, with some
+stuttering along the way. Netflix isn't supported: it doesn't share its
+catalog with Apple's.
 
 ### One command to stay current
 

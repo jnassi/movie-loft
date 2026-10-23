@@ -259,7 +259,9 @@ again. Prime's links carry `time=auto` (resume), which rolled a watched
 episode into the next; `services.play_link()` makes it `time=0`. Ads ignore
 jumps, and nothing reported distinguishes an ad (Prime: position ~1s, length
 = the episode's), so a missed jump presses play and re-checks every 15s, up
-to 90s; pausing more often made the ad stutter. Helper limit 150s; the phone
+to 90s; pausing more often made the ad stutter. **Ad tiers are deliberately
+not optimized** (Jason, Oct 23 2026: ad-free is the target; ad tiers are a
+"necessary evil" that should work, not work well), and the docs say so. Helper limit 150s; the phone
 waits as long. Apps report titles their own way, so streamed tune-ins don't
 fail on a title mismatch.
 
