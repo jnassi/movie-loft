@@ -302,8 +302,11 @@ function describe(p){
   // instead, in the service's app. The TV reports an episode's title as the
   // show's name, so `title` stays the show.
   const [show, eps, id, svc] = SHOWS[p.s], [s, e, t, , eid, play] = eps[p.e];
+  // Streamed: the app may report the episode's title or the show's (HBO Max
+  // and Peacock say "7:00 A.M.", Hulu "The Bear | S1 E1 - System"), so the
+  // helper gets both, one per line, to tell the episode from a trailer.
   return {title: show, sub: `S${s} E${e} · ${t}` + (svc ? ` · ${svc}` : ''), art: 'art-tv/' + safe(show), wide: false,
-          exact: !!(play || (eid && id)),
+          exact: !!(play || (eid && id)), tuneTitle: play ? `${show}\n${t}` : show,
           link: play ? play
               : eid && id ? `https://tv.apple.com/us/episode/${slug(t)}/umc.cmc.${eid}?showId=${id}`
               : id ? `https://tv.apple.com/us/show/${slug(show)}/${id}` : ''};
@@ -438,7 +441,7 @@ card.addEventListener('click', async e => {
   say(`Tuning ${room}…`);
   try {
     const r = await fetch('/api/tune', {method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({room: b.dataset.room, link: d.link, title: d.title, position: pos, fromStart})});
+      body: JSON.stringify({room: b.dataset.room, link: d.link, title: d.tuneTitle || d.title, position: pos, fromStart})});
     if (!r.ok) throw new Error(r.status === 401 ? 'You’re signed out — reload the page.' : 'Movie Loft refused the request.');
     const job = await r.json();
     if (!job.agentOnline) say(`Tuning ${room}… (the Mac's helper hasn't checked in lately — is the Mac on?)`);

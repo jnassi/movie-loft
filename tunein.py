@@ -45,6 +45,21 @@ def norm(s):
     return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
 
 
+def is_it(title, now_title):
+    """Is the app playing this? `title` is the show and the episode's title,
+    one per line; apps report one or the other, sometimes with more around it
+    ("The Bear | S1 E1 - System"). Unknown (nothing reported) counts as yes."""
+    now = norm(now_title)
+    if not now:
+        return True
+    for t in filter(None, map(norm, (title or "").split("\n"))):
+        if len(t) >= 4 and (t in now or now in t):
+            return True
+        if t == now:
+            return True
+    return not (title or "").strip()
+
+
 async def state(atv):
     p = await atv.metadata.playing()
     return p.device_state, p.position, p.title
@@ -136,13 +151,34 @@ async def tune(name, link, target=None, title="", log=print):
             return "opened"                       # a show page: the viewer picks the episode
         await wait_stopped(atv)
         if streamed:
-            # The app starts the episode on its own; app launch + sign-in
-            # check + buffering can take a while.
-            if not await wait_playing(atv, 20):
-                await atv.remote_control.select()  # stopped at the episode's page: Play
-                mark("select (the app stopped at the episode's page)")
-                if not await wait_playing(atv, 12):
+            # The app starts the episode on its own, but things can stand in
+            # the way, each answered by Select on what's already highlighted
+            # (tested Oct 2026): tvOS's "Open in “Hulu”?" for app-only links
+            # (hulu://, aiv://, pplus://; web links like HBO Max's don't ask),
+            # then a profile picker when the app starts cold. So press Select
+            # until it plays. The first press waits long enough for a warm app
+            # to start on its own (Disney+ ~6s). Capped so the whole tune stays
+            # inside tune_agent.py's 45s.
+            waits, presses = [8, 6, 6, 6], 0
+            while not await wait_playing(atv, waits[presses]):
+                presses += 1
+                if presses == len(waits):
                     raise TuneError("The episode never started playing — is the app signed in?")
+                await atv.remote_control.select()
+                mark(f"select #{presses} (a prompt, profile picker, or the episode's page)")
+            # A cold app can play a promo first (Disney+, Paramount+: a
+            # trailer, then the episode). If what's playing is neither the show
+            # nor the episode, send the link again: the app is warm now, and a
+            # warm app goes straight to the episode.
+            await asyncio.sleep(1.0)              # reported state lags
+            if not is_it(title, (await state(atv))[2]):
+                mark(f"the app is playing “{(await state(atv))[2]}” — a promo? sending the link again")
+                await atv.apps.launch_app(link)
+                await asyncio.sleep(1.5)
+                if not await wait_playing(atv, 10):
+                    await atv.remote_control.select()
+                    if not await wait_playing(atv, 6):
+                        raise TuneError("The episode never started playing after the promo")
         else:
             await asyncio.sleep(2.5)              # let the page load
             await atv.remote_control.select()
@@ -203,4 +239,4 @@ async def tune(name, link, target=None, title="", log=print):
 if __name__ == "__main__":
     name, link, secs = sys.argv[1], sys.argv[2], int(sys.argv[3])
     title = sys.argv[4] if len(sys.argv) > 4 else ""
-    print(asyncio.run(tune(name, link, (lambda: secs), title)))
+    print(asyncio.run(tune(name, link, (lambda: secs), title.replace("\\n", "\n"))))

@@ -48,6 +48,16 @@ def canonical(name):
     return None
 
 
+def play_link(service, url):
+    """A service's play link as Tune in should send it. Prime Video's carry
+    time=auto ("resume where you left off"): on an episode already watched
+    that resumes at the end, autoplay rolls into the next episode, and the
+    jump lands in the wrong one (tested Oct 2026). time=0 starts at the top."""
+    if service == "Prime Video":
+        url = url.replace("time=auto", "time=0")
+    return url
+
+
 def is_play_link(link):
     """A service's own play link (not tv.apple.com)."""
     return link.startswith(LINK_PREFIXES)

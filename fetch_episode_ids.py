@@ -30,7 +30,7 @@ Apple TV+ shows get no links (their episode IDs play in the Apple TV app).
 """
 import difflib, json, re, sys, time, tomllib, unicodedata, urllib.parse, urllib.request
 
-from app.services import SERVICES
+from app.services import SERVICES, play_link
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -195,7 +195,7 @@ def choose(ids, by_id, mine, listed=()):
         if svc == "Apple TV+":
             return {k: "" for k, i in ids.items() if not by_id.get(i)}
         name = SERVICES[svc]["apple"]
-        return {k: by_id[i][name] for k, i in ids.items() if name in by_id.get(i, {})}
+        return {k: play_link(svc, by_id[i][name]) for k, i in ids.items() if name in by_id.get(i, {})}
     for pool in ([s_ for s_ in mine if s_ in listed], mine):
         cover = [(svc, carried(svc)) for svc in pool]
         cover = [(svc, eps) for svc, eps in cover if eps]
