@@ -55,6 +55,11 @@ async def main_():
         # Bad input and bad tokens are refused.
         check((await tune(room="garage")).status_code == 400, "unknown room accepted")
         check((await tune(link="https://evil.example/")).status_code == 400, "non-Apple link accepted")
+        check((await tune(link="hulu://videos/x?play=true")).status_code == 200, "a service's play link refused")
+        check((await tune(link="netflix://title/1")).status_code == 400, "an unsupported app's link accepted")
+        check((await tune(link="https://play.hbomax.com.evil.example/")).status_code == 400,
+              "a look-alike link accepted")
+        store._tunes.clear()                      # the rest of the test expects an empty queue
         check((await c.get("/agent/next")).status_code == 401, "agent/next without a token")
         check((await c.get("/agent/next", headers={"X-Agent-Token": "nope"})).status_code == 401,
               "agent/next with a wrong token")

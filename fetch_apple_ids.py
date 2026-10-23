@@ -8,7 +8,9 @@ Source: Wikidata, matched on TMDB IDs Movie Loft already has —
   movies: theatrical.json tmdbId  → Wikidata P4947 (TMDB movie ID) → P9586 (Apple TV movie ID)
   shows:  tv-art.json tmdb        → Wikidata P4983 (TMDB TV ID)    → P9751 (Apple TV show ID)
 (Apple's iTunes Search API stopped returning movies in 2026, and the Apple TV
-app's library file is encrypted, so neither is an option.)
+app's library file is encrypted, so neither is an option.) Wikidata rarely
+knows shows from other services, so a streamed show it doesn't know is
+looked up in Apple's own catalog search instead (title and first year).
 
 The ID is a "umc.cmc.…" string; the tv.apple.com link is built from it at
 tune-in time. Titles Wikidata doesn't know are pinned by hand in
@@ -58,9 +60,10 @@ def main():
     raws = [l.split("\t")[0] for l in (ROOT / "movies.tsv").read_text(encoding="utf-8").split("\n") if l.strip()]
     shows = {s: v["tmdb"] for s, v in json.loads((ROOT / "tv-art.json").read_text(encoding="utf-8")).items()
              if v.get("tmdb")}
-    if (ROOT / "streaming.json").exists():          # streamed shows (Apple TV+) too
-        for s, v in json.loads((ROOT / "streaming.json").read_text(encoding="utf-8")).items():
-            shows.setdefault(s, v["tmdb"])
+    streamed = json.loads((ROOT / "streaming.json").read_text(encoding="utf-8")) \
+        if (ROOT / "streaming.json").exists() else {}
+    for s, v in streamed.items():                   # streamed shows too
+        shows.setdefault(s, v["tmdb"])
 
     want_m = {r: movies[r.strip()] for r in raws if r.strip() in movies and r not in have_m}
     want_s = {s: t for s, t in shows.items() if s not in have_s}
@@ -72,6 +75,20 @@ def main():
     for s, t in want_s.items():
         if str(t) in got_s:
             have_s[s] = got_s[str(t)]
+    lost = [s for s in want_s if s in streamed and s not in have_s]
+    if lost:                                            # Wikidata doesn't know it: ask Apple
+        import fetch_episode_ids
+        q = fetch_episode_ids.keys("appletv")
+        for s in lost:
+            try:
+                got = fetch_episode_ids.search_show(s, streamed[s].get("first"), q)
+            except Exception as e:
+                print(f"  ? {s}: Apple's search failed ({e})")
+                continue
+            if got:
+                have_s[s] = got
+            else:
+                print(f"  ? {s}: not in Apple's catalog — pin it under [apple_tv]")
     for title, link in pins.items():                    # hand pins win
         m = UMC.search(link or "")
         if not m:

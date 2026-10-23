@@ -121,7 +121,7 @@ __BASE_CSS__
 </div>
 <script>
 const MOVIES = __MOVIES__;      // [raw, title, year, director, secs, appleId]
-const SHOWS = __SHOWS__;        // [show, [[season, episode, title, secs, episodeId], …], appleId, service ("" = owned)]
+const SHOWS = __SHOWS__;        // [show, [[season, episode, title, secs, episodeId, playLink?], …], appleId, service ("" = owned)]
 const CHANNELS = __CHANNELS__;
 const REFS = __REFS__;
 const ROOMS = __ROOMS__;        // Tune in rooms from movieloft.toml: [[key, label], …]          // named per-show episode lists: [[show, [episode, …]], …]
@@ -297,12 +297,18 @@ function describe(p){
             link: id ? `https://tv.apple.com/us/movie/${slug(title)}/${id}` : ''};
   }
   // An episode with its own Apple TV ID tunes like a movie (exact episode,
-  // exact minute); without one, Tune in opens the show's page. The TV reports
-  // an episode's title as the show's name, so `title` stays the show.
-  const [show, eps, id, svc] = SHOWS[p.s], [s, e, t, , eid] = eps[p.e];
+  // exact minute); without one, Tune in opens the show's page. A streamed
+  // episode with a play link on its service (HBO Max, Hulu…) opens that
+  // instead, in the service's app. The TV reports an episode's title as the
+  // show's name, so `title` stays the show.
+  const [show, eps, id, svc] = SHOWS[p.s], [s, e, t, , eid, play] = eps[p.e];
+  // Streamed: the app may report the episode's title or the show's (HBO Max
+  // and Peacock say "7:00 A.M.", Hulu "The Bear | S1 E1 - System"), so the
+  // helper gets both, one per line, to tell the episode from a trailer.
   return {title: show, sub: `S${s} E${e} · ${t}` + (svc ? ` · ${svc}` : ''), art: 'art-tv/' + safe(show), wide: false,
-          exact: !!(eid && id),
-          link: eid && id ? `https://tv.apple.com/us/episode/${slug(t)}/umc.cmc.${eid}?showId=${id}`
+          exact: !!(play || (eid && id)), tuneTitle: play ? `${show}\n${t}` : show,
+          link: play ? play
+              : eid && id ? `https://tv.apple.com/us/episode/${slug(t)}/umc.cmc.${eid}?showId=${id}`
               : id ? `https://tv.apple.com/us/show/${slug(show)}/${id}` : ''};
 }
 const img = src => `<img alt="" loading="lazy" src="${src}" onerror="this.remove()">`;
@@ -423,9 +429,11 @@ card.addEventListener('click', async e => {
     // iPhone/iPad open tv.apple.com links in the Apple TV app; a Mac opens them
     // in the browser. The Mac's Apple TV app answers to com.apple.tv:// instead
     // (tested Oct 2026). iPadOS also reports "MacIntel", so tell
-    // them apart by touch support.
+    // them apart by touch support. A service's play link opens as is (its app,
+    // or its website).
     const isMac = /Mac/.test(navigator.platform) && navigator.maxTouchPoints < 2;
-    window.location.href = isMac ? d.link.replace(/^https:\/\//, 'com.apple.tv://') : d.link;
+    const apple = d.link.startsWith('https://tv.apple.com/');
+    window.location.href = isMac && apple ? d.link.replace(/^https:\/\//, 'com.apple.tv://') : d.link;
     return;
   }
   const room = (ROOMS.find(([k]) => k === b.dataset.room) || [, 'the TV'])[1];
@@ -433,20 +441,23 @@ card.addEventListener('click', async e => {
   say(`Tuning ${room}…`);
   try {
     const r = await fetch('/api/tune', {method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({room: b.dataset.room, link: d.link, title: d.title, position: pos, fromStart})});
+      body: JSON.stringify({room: b.dataset.room, link: d.link, title: d.tuneTitle || d.title, position: pos, fromStart})});
     if (!r.ok) throw new Error(r.status === 401 ? 'You’re signed out — reload the page.' : 'Movie Loft refused the request.');
     const job = await r.json();
     if (!job.agentOnline) say(`Tuning ${room}… (the Mac's helper hasn't checked in lately — is the Mac on?)`);
-    const until = Date.now() + 60e3;
+    // Up to ~2½ minutes: a streaming app can open with ads, and the helper
+    // waits them out before it can jump (tunein.py).
+    const t0 = Date.now(), until = t0 + 150e3;
     while (Date.now() < until){
       await new Promise(res => setTimeout(res, 1000));
       const s = await (await fetch('/api/tune/' + job.id)).json();
       if (s.status === 'done') return say(`Ready in ${room} — ${s.message || 'done'}.`);
       if (s.status === 'failed') return say(s.message || 'That didn’t work.', true);
       if (s.status === 'expired') return say('The Mac never picked it up. Is it on, with the helper running?', true);
-      if (s.status === 'working') say(`Tuning ${room}… the Mac is on it.`);
+      if (s.status === 'working') say(Date.now() - t0 > 30e3 ? `Tuning ${room}… still going (waiting out an ad?)`
+                                                             : `Tuning ${room}… the Mac is on it.`);
     }
-    say('No word back from the Mac after a minute.', true);
+    say('No word back from the Mac after a couple of minutes.', true);
   } catch (err){
     say(err.message || 'That didn’t work.', true);
   } finally {

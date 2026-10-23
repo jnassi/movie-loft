@@ -29,7 +29,7 @@ from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import instance, store
+from . import instance, services, store
 
 ROOT = Path(__file__).resolve().parent.parent
 DEV_NO_AUTH = os.environ.get("DEV_NO_AUTH") == "1"
@@ -220,7 +220,8 @@ _agent_seen = 0.0                # last time the helper checked in
 
 class TuneRequest(BaseModel):
     room: str                    # a [[rooms]] key from movieloft.toml
-    link: str                    # https://tv.apple.com/... (movie or show page)
+    link: str                    # https://tv.apple.com/... (movie, show, or episode), or a
+                                 # streaming service's play link (app/services.py)
     title: str                   # what the TV should report playing (movies)
     position: int | None = None  # seconds into the title at the moment of the tap
     fromStart: bool = False      # start at `position` exactly, not where the broadcast is by now
@@ -228,7 +229,8 @@ class TuneRequest(BaseModel):
 
 @app.post("/api/tune")
 async def tune(req: TuneRequest, request: Request):
-    if req.room not in ROOMS or not req.link.startswith("https://tv.apple.com/"):
+    if req.room not in ROOMS or not (req.link.startswith("https://tv.apple.com/")
+                                     or services.is_play_link(req.link)) or len(req.link) > 1000:
         raise HTTPException(400, "unknown room or link")
     row = await store.add_tune(req.room, req.link, req.title[:300], req.position,
                                request.session.get("email", "dev"), req.fromStart)

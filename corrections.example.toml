@@ -49,10 +49,18 @@ match = ["^The Lord of the Rings", "^The Hobbit"]
 # "Star Trek: The Original Series (Remastered)" = 253
 
 # Shows you stream but don't own. They join the TV Shows page with a service
-# badge and mix into the guide. Episodes and posters come from TMDB.
+# badge and mix into the guide. Episodes and posters come from TMDB; which of
+# your services plays each one comes from Apple's catalog, and Tune in opens
+# the episode in that service's app. Services Movie Loft can play: Apple TV+,
+# HBO Max, Hulu, Disney+, Prime Video, Paramount+, Peacock (not Netflix: it
+# isn't in Apple's catalog). List yours in the order you'd rather watch on.
 [streaming]
-service = "Apple TV+"
-shows = []                              # e.g. ["Ted Lasso", "Severance"]
+services = ["Apple TV+"]                # e.g. ["HBO Max", "Hulu", "Apple TV+"]
+shows = []                              # e.g. ["Ted Lasso", "The Pitt", "The Bear"]
+
+# When the guess is wrong (a show on two of your services):
+# [streaming.on]
+# "The Bear" = "Hulu"
 
 # ---------------------------------------------------------------- the guide
 

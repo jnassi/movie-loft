@@ -178,6 +178,11 @@ for show, rec in shows.items():
 # add them, badged with their service. They mix into every TV channel.
 STREAM = ROOT / "streaming.json"
 streamed = json.loads(STREAM.read_text(encoding="utf-8")) if STREAM.exists() else {}
+# …badged with the service Apple's catalog says plays it, once
+# fetch_episode_ids.py has looked (stream-links.json, from the last run).
+LINKS = ROOT / "stream-links.json"
+apple_svc = {k: v.get("service") for k, v in json.loads(LINKS.read_text(encoding="utf-8")).items()} \
+    if LINKS.exists() else {}
 for show, rec in streamed.items():
     if show in shows or not rec.get("eps"):
         continue                                   # owned copy wins
@@ -187,7 +192,7 @@ for show, rec in streamed.items():
         "seasons": len({e[0] for e in eps}), "count": len(eps),
         "hours": round(sum(e[3] for e in eps) / 3600),
         "years": str(rec.get("first") or ""), "first": rec.get("first") or 0,
-        "extras": 0, "eps": eps, "svc": rec.get("service", ""),
+        "extras": 0, "eps": eps, "svc": apple_svc.get(show) or rec.get("service", ""),
     })
 
 out.sort(key=lambda r: r["gk"])

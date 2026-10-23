@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Tune an Apple TV to a title at a given minute — one connection, start to finish.
 
-    .venv-atv/bin/python tunein.py "<Apple TV name>" <tv.apple.com link> <seconds> [title]
+    .venv-atv/bin/python tunein.py "<Apple TV name>" <link> <seconds> [title]
+
+<link> is a tv.apple.com link, or a streaming service's play link
+(hulu://…, https://play.hbomax.com/…; see app/services.py).
 
 Used by tune_agent.py (the helper behind the guide's Tune in button) and
 runnable on its own for testing. Needs pyatv (in .venv-atv — Python 3.12;
@@ -15,6 +18,11 @@ to actually start, then pause → jump, and leave it paused (the viewer presses 
 when ready). A partly watched title resumes
 where it was left, not at 0:00 — the jump handles both. Each separate
 connection costs seconds, which is why it's all one connection.
+
+A service's play link starts the episode in that service's app by itself, so
+there's no Select — unless it stops at the episode's page, then one Select.
+The jump works the same way when the app reports its playback to the Apple
+TV (most do).
 """
 import asyncio, json, re, sys, time
 from pathlib import Path
@@ -35,6 +43,21 @@ def hms(secs):
 
 def norm(s):
     return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+
+def is_it(title, now_title):
+    """Is the app playing this? `title` is the show and the episode's title,
+    one per line; apps report one or the other, sometimes with more around it
+    ("The Bear | S1 E1 - System"). Unknown (nothing reported) counts as yes."""
+    now = norm(now_title)
+    if not now:
+        return True
+    for t in filter(None, map(norm, (title or "").split("\n"))):
+        if len(t) >= 4 and (t in now or now in t):
+            return True
+        if t == now:
+            return True
+    return not (title or "").strip()
 
 
 async def state(atv):
@@ -122,18 +145,52 @@ async def tune(name, link, target=None, title="", log=print):
         except Exception:
             pass
         await atv.apps.launch_app(link)
-        mark("opened the page")
+        streamed = not link.startswith("https://tv.apple.com/")
+        mark("opened the " + ("service's app" if streamed else "page"))
         if target is None:
             return "opened"                       # a show page: the viewer picks the episode
         await wait_stopped(atv)
-        await asyncio.sleep(2.5)                  # let the page load
-        await atv.remote_control.select()
-        mark("select")
-        if not await wait_playing(atv, 3):
-            await atv.remote_control.select()     # the extras menu: now PLAY
-            mark("select (PLAY in the menu)")
-            if not await wait_playing(atv, 12):
-                raise TuneError("The movie never started playing")
+        if streamed:
+            # The app starts the episode on its own, but things can stand in
+            # the way, each answered by Select on what's already highlighted
+            # (tested Oct 2026): tvOS's "Open in “Hulu”?" for app-only links
+            # (hulu://, aiv://, pplus://; web links like HBO Max's don't ask),
+            # then a profile picker when the app starts cold. So press Select
+            # until it plays. The first press waits long enough for a warm app
+            # to start on its own (Disney+ ~6s). Two presses cover the prompt
+            # and the picker; then a long hands-off wait for a slow load (Prime
+            # Video spins a while, cold — a press there lands on the spinner);
+            # then one last press in case it stopped at the episode's page.
+            waits, presses = [8, 6, 25, 8], 0
+            while not await wait_playing(atv, waits[presses]):
+                presses += 1
+                if presses == len(waits):
+                    raise TuneError("The episode never started playing — is the app signed in?")
+                await atv.remote_control.select()
+                mark(f"select #{presses} (a prompt, profile picker, or the episode's page)")
+            # A cold app can play a promo first (Disney+, Paramount+: a
+            # trailer, then the episode). If what's playing is neither the show
+            # nor the episode, send the link again: the app is warm now, and a
+            # warm app goes straight to the episode.
+            await asyncio.sleep(1.0)              # reported state lags
+            if not is_it(title, (await state(atv))[2]):
+                mark(f"the app is playing “{(await state(atv))[2]}” — a promo? sending the link again")
+                await atv.apps.launch_app(link)
+                await asyncio.sleep(1.5)
+                if not await wait_playing(atv, 10):
+                    await atv.remote_control.select()
+                    if not await wait_playing(atv, 6):
+                        raise TuneError("The episode never started playing after the promo")
+        else:
+            await asyncio.sleep(2.5)              # let the page load
+            await atv.remote_control.select()
+            mark("select")
+            if not await wait_playing(atv, 3):
+                await atv.remote_control.select()     # the extras menu: now PLAY
+                mark("select (PLAY in the menu)")
+                if not await wait_playing(atv, 12):
+                    raise TuneError("The movie never started playing")
+        mark("playing")
         # Land on the frame and STAY PAUSED — deliberate (Oct 2026):
         # the viewer presses Play when settled. (A play() right after the jump was
         # being dropped anyway while the seek settled.)
@@ -148,9 +205,15 @@ async def tune(name, link, target=None, title="", log=print):
         # So: let it PLAY through the jump, pause
         # only once it has loaded (~3s), then read the paused position — and
         # jump again if it isn't there. Lands ~3s past the broadcast point.
-        SETTLE = 3.0
+        # Streamed shows can open with ads (Prime Video without ad-free,
+        # tested Oct 2026), and an ad ignores jumps. So for them, keep trying
+        # until the jump takes or AD_WAIT runs out — and after each miss, press
+        # play, so the ad keeps running instead of sitting paused.
+        SETTLE, AD_WAIT = 3.0, 90
         await asyncio.sleep(1.0)                  # a jump at the very first instant gets dropped
-        for attempt in range(4):
+        give_up, attempt = time.monotonic() + AD_WAIT, 0
+        while True:
+            attempt += 1
             secs = max(0, int(target()))
             await atv.remote_control.set_position(secs)
             await asyncio.sleep(0.5)
@@ -165,11 +228,26 @@ async def tune(name, link, target=None, title="", log=print):
             st, pos, now_title = await state(atv)
             if pos is not None and secs - 5 <= pos <= secs + SETTLE + 15:
                 break
-            mark(f"jump to {hms(secs)} didn't take (paused at {pos}s); retrying")
-        else:
-            raise TuneError(f"The TV wouldn't jump to {hms(secs)} — it's paused near the start")
+            if not streamed:
+                if attempt == 4:
+                    raise TuneError(f"The TV wouldn't jump to {hms(secs)} — it's paused near the start")
+                mark(f"jump to {hms(secs)} didn't take (paused at {pos}s); retrying")
+                continue
+            await atv.remote_control.play()       # most likely an ad: let it run
+            if time.monotonic() > give_up:        # better playing than nothing
+                return f"playing — couldn't jump to {hms(secs)} (ads?)"
+            mark(f"jump to {hms(secs)} didn't take (at {pos}s) — an ad? letting it play")
+            # Then leave it alone for a while: each check pauses, and a pause
+            # makes the ad stutter. Nothing reported tells the ad from the
+            # episode (tested on Prime Video, Oct 2026: the position reads ~1s
+            # and the length is the episode's all through the ads), so check
+            # every 15s — a few stutters, and the jump lands within ~15s of
+            # the ad ending.
+            await asyncio.sleep(min(15, max(0, give_up - time.monotonic())))
         mark(f"jumped to {hms(secs)}, paused (TV reports {pos}s)")
-        if title and now_title and not norm(now_title).startswith(norm(title)[:12]):
+        if streamed:
+            mark(f"the app reports “{now_title}”")   # apps name things their own way: note it, don't judge
+        elif title and now_title and not norm(now_title).startswith(norm(title)[:12]):
             raise TuneError(f"The TV has “{now_title}”, not “{title}” — its Apple TV link may be wrong")
         return f"paused at {hms(secs)} — press play"
     finally:
@@ -179,4 +257,4 @@ async def tune(name, link, target=None, title="", log=print):
 if __name__ == "__main__":
     name, link, secs = sys.argv[1], sys.argv[2], int(sys.argv[3])
     title = sys.argv[4] if len(sys.argv) > 4 else ""
-    print(asyncio.run(tune(name, link, (lambda: secs), title)))
+    print(asyncio.run(tune(name, link, (lambda: secs), title.replace("\\n", "\n"))))
