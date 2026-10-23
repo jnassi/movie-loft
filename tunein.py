@@ -234,7 +234,17 @@ async def tune(name, link, target=None, title="", log=print):
             if time.monotonic() > give_up:        # better playing than nothing
                 return f"playing — couldn't jump to {hms(secs)} (ads?)"
             mark(f"jump to {hms(secs)} didn't take (at {pos}s) — an ad? letting it play")
-            await asyncio.sleep(5)
+            # Watch without touching it (pausing to check made the ad stutter):
+            # during an ad the position sits at 0; when the episode's own clock
+            # starts moving, jump. A real try every 15s anyway, in case this
+            # app's position while playing is stale.
+            watch = time.monotonic() + 15
+            while time.monotonic() < min(watch, give_up):
+                await asyncio.sleep(1.0)
+                st, pos, _ = await state(atv)
+                if st == DeviceState.Playing and pos:
+                    mark(f"the episode is running (at {pos}s)")
+                    break
         mark(f"jumped to {hms(secs)}, paused (TV reports {pos}s)")
         if streamed:
             mark(f"the app reports “{now_title}”")   # apps name things their own way: note it, don't judge
